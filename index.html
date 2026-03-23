@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel de Condição</title>
+  <title>Checklist Diário do Motorista</title>
 
   <meta name="theme-color" content="#0a192f" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Painel de Condição" />
+  <meta name="apple-mobile-web-app-title" content="Checklist Diário" />
 
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
@@ -22,8 +22,8 @@
       <div class="brand-wrap">
         <div class="brand-icon">🛡️</div>
         <div class="brand-text">
-          <h1>Painel de Condição</h1>
-          <p>Controle diário da equipe para execução das atividades</p>
+          <h1>Checklist Diário do Motorista</h1>
+          <p>Controle diário em tempo real, sem tela de login</p>
         </div>
       </div>
     </header>
@@ -49,141 +49,76 @@
       <section class="panel card">
         <div class="section-head">
           <div>
-            <h2 id="formTitle">Controle do dia</h2>
-            <p id="formSubtitle">Você pode salvar parcialmente e completar os próximos períodos depois.</p>
+            <h2 id="formTitle">Checklist do dia</h2>
+            <p id="formSubtitle">Preencha as condições do motorista e do veículo antes do uso.</p>
           </div>
         </div>
 
         <form id="formStatus" class="form-grid">
-          <div class="field full">
-            <label for="recordDate">Data do registro</label>
-            <input type="date" id="recordDate" required />
+          <div class="grid-2">
+            <div class="field">
+              <label for="recordDate">Data</label>
+              <input type="date" id="recordDate" required />
+            </div>
+
+            <div class="field">
+              <label for="responsavel">Quem fez o checklist</label>
+              <input type="text" id="responsavel" placeholder="Nome de quem preencheu" required />
+            </div>
+
+            <div class="field">
+              <label for="motorista">Motorista</label>
+              <input type="text" id="motorista" placeholder="Nome do motorista" required />
+            </div>
+
+            <div class="field">
+              <label for="veiculoPlaca">Veículo / Placa</label>
+              <input type="text" id="veiculoPlaca" placeholder="Ex.: Fiorino - ABC1D23" required />
+            </div>
+
+            <div class="field">
+              <label for="km">KM</label>
+              <input type="number" id="km" placeholder="Ex.: 125430" min="0" />
+            </div>
           </div>
 
-          <article class="period-card">
-            <div class="period-head">
-              <h3>Antes de sair de casa</h3>
-              <p>Registro inicial do dia</p>
+          <section class="checklist-section">
+            <div class="checklist-header">
+              <h3>1. Condições Físicas e Mentais</h3>
+              <p>Marque a condição atual do motorista.</p>
             </div>
+            <div id="grupo-condicoes" class="checklist-items"></div>
+          </section>
 
-            <div class="period-body">
-              <div class="field">
-                <label for="antesCasa_motorista_nome">Motorista</label>
-                <input type="text" id="antesCasa_motorista_nome" placeholder="Nome do motorista" />
-              </div>
-
-              <div class="field">
-                <label for="antesCasa_motorista_status">Situação do motorista</label>
-                <select id="antesCasa_motorista_status">
-                  <option value="ótimo">Ótimo para as atividades</option>
-                  <option value="regular">Regular para as atividades</option>
-                  <option value="ruim">Ruim para as atividades</option>
-                </select>
-              </div>
-
-              <div class="field full">
-                <label for="antesCasa_passageiros">Passageiros</label>
-                <textarea id="antesCasa_passageiros" placeholder="Ex.: João, Maria, Pedro"></textarea>
-              </div>
-
-              <div class="field full">
-                <label for="antesCasa_passageiros_status">Situação dos passageiros</label>
-                <select id="antesCasa_passageiros_status">
-                  <option value="ótimo">Ótimo para as atividades</option>
-                  <option value="regular">Regular para as atividades</option>
-                  <option value="ruim">Ruim para as atividades</option>
-                </select>
-              </div>
+          <section class="checklist-section">
+            <div class="checklist-header">
+              <h3>2. Documentação Obrigatória</h3>
+              <p>Confirme os documentos necessários.</p>
             </div>
-          </article>
+            <div id="grupo-documentacao" class="checklist-items"></div>
+          </section>
 
-          <article class="period-card">
-            <div class="period-head">
-              <h3>Após almoço</h3>
-              <p>Registro intermediário do dia</p>
+          <section class="checklist-section">
+            <div class="checklist-header">
+              <h3>3. Verificação do Veículo (Pré-Uso)</h3>
+              <p>Confira os itens básicos antes de sair.</p>
             </div>
+            <div id="grupo-veiculo" class="checklist-items"></div>
+          </section>
 
-            <div class="period-body">
-              <div class="field">
-                <label for="aposAlmoco_motorista_nome">Motorista</label>
-                <input type="text" id="aposAlmoco_motorista_nome" placeholder="Nome do motorista" />
-              </div>
-
-              <div class="field">
-                <label for="aposAlmoco_motorista_status">Situação do motorista</label>
-                <select id="aposAlmoco_motorista_status">
-                  <option value="ótimo">Ótimo para as atividades</option>
-                  <option value="regular">Regular para as atividades</option>
-                  <option value="ruim">Ruim para as atividades</option>
-                </select>
-              </div>
-
-              <div class="field full">
-                <label for="aposAlmoco_passageiros">Passageiros</label>
-                <textarea id="aposAlmoco_passageiros" placeholder="Ex.: João, Maria, Pedro"></textarea>
-              </div>
-
-              <div class="field full">
-                <label for="aposAlmoco_passageiros_status">Situação dos passageiros</label>
-                <select id="aposAlmoco_passageiros_status">
-                  <option value="ótimo">Ótimo para as atividades</option>
-                  <option value="regular">Regular para as atividades</option>
-                  <option value="ruim">Ruim para as atividades</option>
-                </select>
-              </div>
-            </div>
-          </article>
-
-          <article class="period-card">
-            <div class="period-head">
-              <h3>Antes de sair do cliente</h3>
-              <p>Registro final do atendimento</p>
-            </div>
-
-            <div class="period-body">
-              <div class="field">
-                <label for="antesCliente_motorista_nome">Motorista</label>
-                <input type="text" id="antesCliente_motorista_nome" placeholder="Nome do motorista" />
-              </div>
-
-              <div class="field">
-                <label for="antesCliente_motorista_status">Situação do motorista</label>
-                <select id="antesCliente_motorista_status">
-                  <option value="ótimo">Ótimo para as atividades</option>
-                  <option value="regular">Regular para as atividades</option>
-                  <option value="ruim">Ruim para as atividades</option>
-                </select>
-              </div>
-
-              <div class="field full">
-                <label for="antesCliente_passageiros">Passageiros</label>
-                <textarea id="antesCliente_passageiros" placeholder="Ex.: João, Maria, Pedro"></textarea>
-              </div>
-
-              <div class="field full">
-                <label for="antesCliente_passageiros_status">Situação dos passageiros</label>
-                <select id="antesCliente_passageiros_status">
-                  <option value="ótimo">Ótimo para as atividades</option>
-                  <option value="regular">Regular para as atividades</option>
-                  <option value="ruim">Ruim para as atividades</option>
-                </select>
-              </div>
-            </div>
-          </article>
+          <div class="field full">
+            <label for="observacoesGerais">Observações gerais</label>
+            <textarea
+              id="observacoesGerais"
+              placeholder="Anote aqui qualquer observação adicional do checklist."
+            ></textarea>
+          </div>
 
           <div class="message-box" id="saveMsg">Sistema pronto para uso.</div>
 
-          <div class="install-box" id="installBox" hidden>
-            <div>
-              <strong>Instalar app</strong>
-              <p>Adicione este sistema à tela inicial do celular.</p>
-            </div>
-            <button class="btn btn-primary" type="button" id="installBtn">Instalar</button>
-          </div>
-
           <div class="actions-bar full">
             <button class="btn btn-light" id="cancelEditBtn" type="button" hidden>Cancelar edição</button>
-            <button class="btn btn-primary" id="submitBtn" type="submit">Salvar registro do dia</button>
+            <button class="btn btn-primary" id="submitBtn" type="submit">Salvar checklist</button>
           </div>
         </form>
       </section>
@@ -191,7 +126,7 @@
       <section class="panel card">
         <div class="section-head">
           <div>
-            <h2>Últimos registros</h2>
+            <h2>Últimos checklists</h2>
             <p>Lista atualizada em tempo real</p>
           </div>
         </div>
