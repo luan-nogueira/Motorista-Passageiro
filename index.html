@@ -51,21 +51,24 @@
             <input type="date" id="recordDate" required />
           </div>
 
-          <article class="period-card">
+          <article class="period-card" id="cardAntesCasa">
             <div class="period-head">
-              <h3>Antes de sair de casa</h3>
-              <p>Registro inicial do dia</p>
+              <div>
+                <h3>Antes de sair de casa</h3>
+                <p>Registro inicial do dia</p>
+              </div>
+              <div class="period-unlock-info" id="infoAntesCasa"></div>
             </div>
 
             <div class="period-body">
               <div class="field">
                 <label for="antesCasa_motorista_nome">Motorista</label>
-                <input type="text" id="antesCasa_motorista_nome" placeholder="Nome do motorista" required />
+                <input type="text" id="antesCasa_motorista_nome" placeholder="Nome do motorista" />
               </div>
 
               <div class="field">
                 <label for="antesCasa_motorista_status">Situação do motorista</label>
-                <select id="antesCasa_motorista_status" required>
+                <select id="antesCasa_motorista_status">
                   <option value="ótimo">Ótimo para as atividades</option>
                   <option value="regular">Regular para as atividades</option>
                   <option value="ruim">Ruim para as atividades</option>
@@ -74,12 +77,12 @@
 
               <div class="field full">
                 <label for="antesCasa_passageiros">Passageiros</label>
-                <textarea id="antesCasa_passageiros" placeholder="Ex.: João, Maria, Pedro" required></textarea>
+                <textarea id="antesCasa_passageiros" placeholder="Ex.: João, Maria, Pedro"></textarea>
               </div>
 
               <div class="field full">
                 <label for="antesCasa_passageiros_status">Situação dos passageiros</label>
-                <select id="antesCasa_passageiros_status" required>
+                <select id="antesCasa_passageiros_status">
                   <option value="ótimo">Ótimo para as atividades</option>
                   <option value="regular">Regular para as atividades</option>
                   <option value="ruim">Ruim para as atividades</option>
@@ -88,21 +91,24 @@
             </div>
           </article>
 
-          <article class="period-card">
+          <article class="period-card" id="cardAposAlmoco">
             <div class="period-head">
-              <h3>Após almoço</h3>
-              <p>Registro intermediário do dia</p>
+              <div>
+                <h3>Após almoço</h3>
+                <p>Registro intermediário do dia</p>
+              </div>
+              <div class="period-unlock-info" id="infoAposAlmoco"></div>
             </div>
 
             <div class="period-body">
               <div class="field">
                 <label for="aposAlmoco_motorista_nome">Motorista</label>
-                <input type="text" id="aposAlmoco_motorista_nome" placeholder="Nome do motorista" required />
+                <input type="text" id="aposAlmoco_motorista_nome" placeholder="Nome do motorista" />
               </div>
 
               <div class="field">
                 <label for="aposAlmoco_motorista_status">Situação do motorista</label>
-                <select id="aposAlmoco_motorista_status" required>
+                <select id="aposAlmoco_motorista_status">
                   <option value="ótimo">Ótimo para as atividades</option>
                   <option value="regular">Regular para as atividades</option>
                   <option value="ruim">Ruim para as atividades</option>
@@ -111,12 +117,12 @@
 
               <div class="field full">
                 <label for="aposAlmoco_passageiros">Passageiros</label>
-                <textarea id="aposAlmoco_passageiros" placeholder="Ex.: João, Maria, Pedro" required></textarea>
+                <textarea id="aposAlmoco_passageiros" placeholder="Ex.: João, Maria, Pedro"></textarea>
               </div>
 
               <div class="field full">
                 <label for="aposAlmoco_passageiros_status">Situação dos passageiros</label>
-                <select id="aposAlmoco_passageiros_status" required>
+                <select id="aposAlmoco_passageiros_status">
                   <option value="ótimo">Ótimo para as atividades</option>
                   <option value="regular">Regular para as atividades</option>
                   <option value="ruim">Ruim para as atividades</option>
@@ -125,21 +131,24 @@
             </div>
           </article>
 
-          <article class="period-card">
+          <article class="period-card" id="cardAntesCliente">
             <div class="period-head">
-              <h3>Antes de sair do cliente</h3>
-              <p>Registro final do atendimento</p>
+              <div>
+                <h3>Antes de sair do cliente</h3>
+                <p>Registro final do atendimento</p>
+              </div>
+              <div class="period-unlock-info" id="infoAntesCliente"></div>
             </div>
 
             <div class="period-body">
               <div class="field">
                 <label for="antesCliente_motorista_nome">Motorista</label>
-                <input type="text" id="antesCliente_motorista_nome" placeholder="Nome do motorista" required />
+                <input type="text" id="antesCliente_motorista_nome" placeholder="Nome do motorista" />
               </div>
 
               <div class="field">
                 <label for="antesCliente_motorista_status">Situação do motorista</label>
-                <select id="antesCliente_motorista_status" required>
+                <select id="antesCliente_motorista_status">
                   <option value="ótimo">Ótimo para as atividades</option>
                   <option value="regular">Regular para as atividades</option>
                   <option value="ruim">Ruim para as atividades</option>
@@ -148,12 +157,12 @@
 
               <div class="field full">
                 <label for="antesCliente_passageiros">Passageiros</label>
-                <textarea id="antesCliente_passageiros" placeholder="Ex.: João, Maria, Pedro" required></textarea>
+                <textarea id="antesCliente_passageiros" placeholder="Ex.: João, Maria, Pedro"></textarea>
               </div>
 
               <div class="field full">
                 <label for="antesCliente_passageiros_status">Situação dos passageiros</label>
-                <select id="antesCliente_passageiros_status" required>
+                <select id="antesCliente_passageiros_status">
                   <option value="ótimo">Ótimo para as atividades</option>
                   <option value="regular">Regular para as atividades</option>
                   <option value="ruim">Ruim para as atividades</option>
