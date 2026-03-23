@@ -46,6 +46,51 @@ let editingDocId = null;
 let currentDocsCache = [];
 
 // =========================
+// CONFIG DE HORÁRIO
+// =========================
+const PERIODOS_CONFIG = {
+  antesCasa: {
+    key: "antesCasa",
+    titulo: "Antes de sair de casa",
+    liberaEm: "06:00",
+    inputIds: [
+      "antesCasa_motorista_nome",
+      "antesCasa_motorista_status",
+      "antesCasa_passageiros",
+      "antesCasa_passageiros_status"
+    ],
+    cardId: "cardAntesCasa",
+    infoId: "infoAntesCasa"
+  },
+  aposAlmoco: {
+    key: "aposAlmoco",
+    titulo: "Após almoço",
+    liberaEm: "13:00",
+    inputIds: [
+      "aposAlmoco_motorista_nome",
+      "aposAlmoco_motorista_status",
+      "aposAlmoco_passageiros",
+      "aposAlmoco_passageiros_status"
+    ],
+    cardId: "cardAposAlmoco",
+    infoId: "infoAposAlmoco"
+  },
+  antesCliente: {
+    key: "antesCliente",
+    titulo: "Antes de sair do cliente",
+    liberaEm: "16:00",
+    inputIds: [
+      "antesCliente_motorista_nome",
+      "antesCliente_motorista_status",
+      "antesCliente_passageiros",
+      "antesCliente_passageiros_status"
+    ],
+    cardId: "cardAntesCliente",
+    infoId: "infoAntesCliente"
+  }
+};
+
+// =========================
 // DATA
 // =========================
 function hojeISO() {
@@ -255,22 +300,154 @@ function montarDadosFormulario() {
   };
 }
 
+// =========================
+// HORÁRIO / BLOQUEIO
+// =========================
+function agora() {
+  return new Date();
+}
+
+function minutosAgora() {
+  const d = agora();
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function horarioParaMinutos(hhmm) {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function formatarDuracao(minutosRestantes) {
+  const horas = Math.floor(minutosRestantes / 60);
+  const minutos = minutosRestantes % 60;
+
+  if (horas > 0 && minutos > 0) {
+    return `${horas}h ${minutos}min`;
+  }
+  if (horas > 0) {
+    return `${horas}h`;
+  }
+  return `${minutos}min`;
+}
+
+function getPeriodoLiberado(periodoKey) {
+  const config = PERIODOS_CONFIG[periodoKey];
+  return minutosAgora() >= horarioParaMinutos(config.liberaEm);
+}
+
+function getStatusPeriodo(periodoKey) {
+  const config = PERIODOS_CONFIG[periodoKey];
+  const agoraMin = minutosAgora();
+  const liberaMin = horarioParaMinutos(config.liberaEm);
+  const liberado = agoraMin >= liberaMin;
+  const faltam = Math.max(0, liberaMin - agoraMin);
+
+  return {
+    liberado,
+    faltam,
+    liberaEm: config.liberaEm,
+    titulo: config.titulo
+  };
+}
+
+function bloquearPeriodo(inputIds, bloqueado) {
+  inputIds.forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.disabled = bloqueado;
+  });
+}
+
+function atualizarInfoVisualPeriodo(periodoKey) {
+  const config = PERIODOS_CONFIG[periodoKey];
+  const card = document.getElementById(config.cardId);
+  const info = document.getElementById(config.infoId);
+  const status = getStatusPeriodo(periodoKey);
+
+  if (!card || !info) return;
+
+  if (status.liberado) {
+    card.classList.remove("locked-period");
+    card.classList.add("unlocked-period");
+    info.className = "period-unlock-info unlocked";
+    info.innerHTML = `✅ Liberado desde <strong>${status.liberaEm}</strong>`;
+  } else {
+    card.classList.remove("unlocked-period");
+    card.classList.add("locked-period");
+    info.className = "period-unlock-info locked";
+    info.innerHTML = `🔒 Libera às <strong>${status.liberaEm}</strong> • falta <strong>${formatarDuracao(status.faltam)}</strong>`;
+  }
+}
+
+function aplicarRegrasHorario() {
+  Object.keys(PERIODOS_CONFIG).forEach((periodoKey) => {
+    const config = PERIODOS_CONFIG[periodoKey];
+    const status = getStatusPeriodo(periodoKey);
+    bloquearPeriodo(config.inputIds, !status.liberado);
+    atualizarInfoVisualPeriodo(periodoKey);
+  });
+}
+
+function existePeriodoBloqueadoComPreenchimentoManual() {
+  for (const periodoKey of Object.keys(PERIODOS_CONFIG)) {
+    const config = PERIODOS_CONFIG[periodoKey];
+    const status = getStatusPeriodo(periodoKey);
+
+    if (status.liberado) continue;
+
+    const temConteudo = config.inputIds.some((id) => {
+      const el = document.getElementById(id);
+      if (!el) return false;
+      return String(el.value || "").trim() !== "";
+    });
+
+    if (temConteudo) {
+      return config.titulo;
+    }
+  }
+
+  return "";
+}
+
 function validarDados(dados) {
   if (!dados.dataRegistro) {
     return "Selecione a data.";
   }
 
-  const camposObrigatorios = [
-    dados.antesCasa.motorista.nome,
-    dados.antesCasa.passageiros.nomes,
-    dados.aposAlmoco.motorista.nome,
-    dados.aposAlmoco.passageiros.nomes,
-    dados.antesCliente.motorista.nome,
-    dados.antesCliente.passageiros.nomes
+  const validacoes = [
+    {
+      key: "antesCasa",
+      titulo: "Antes de sair de casa",
+      motorista: dados.antesCasa.motorista.nome,
+      passageiros: dados.antesCasa.passageiros.nomes
+    },
+    {
+      key: "aposAlmoco",
+      titulo: "Após almoço",
+      motorista: dados.aposAlmoco.motorista.nome,
+      passageiros: dados.aposAlmoco.passageiros.nomes
+    },
+    {
+      key: "antesCliente",
+      titulo: "Antes de sair do cliente",
+      motorista: dados.antesCliente.motorista.nome,
+      passageiros: dados.antesCliente.passageiros.nomes
+    }
   ];
 
-  if (camposObrigatorios.some((item) => !item)) {
-    return "Preencha motorista e passageiros em todos os períodos.";
+  for (const item of validacoes) {
+    if (!getPeriodoLiberado(item.key)) {
+      continue;
+    }
+
+    if (!item.motorista || !item.passageiros) {
+      return `Preencha motorista e passageiros no período "${item.titulo}".`;
+    }
+  }
+
+  const periodoBloqueadoPreenchido = existePeriodoBloqueadoComPreenchimentoManual();
+  if (periodoBloqueadoPreenchido) {
+    return `O período "${periodoBloqueadoPreenchido}" ainda está bloqueado pelo horário permitido.`;
   }
 
   return "";
@@ -293,6 +470,8 @@ function preencherFormulario(dados) {
   document.getElementById("antesCliente_motorista_status").value = dados?.antesCliente?.motorista?.status || "ótimo";
   document.getElementById("antesCliente_passageiros").value = dados?.antesCliente?.passageiros?.nomes || "";
   document.getElementById("antesCliente_passageiros_status").value = dados?.antesCliente?.passageiros?.status || "ótimo";
+
+  aplicarRegrasHorario();
 }
 
 function limparFormulario() {
@@ -300,6 +479,7 @@ function limparFormulario() {
   recordDate.value = hojeISO();
   editingDocId = null;
   atualizarModoFormulario();
+  aplicarRegrasHorario();
 }
 
 function atualizarModoFormulario() {
@@ -340,6 +520,8 @@ function renderizarLista(registros) {
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
+  aplicarRegrasHorario();
+
   const dados = montarDadosFormulario();
   const erroValidacao = validarDados(dados);
 
@@ -353,6 +535,7 @@ form.addEventListener("submit", async (e) => {
   const docRef = doc(db, "status", docId);
 
   try {
+    submitBtn.disabled = true;
     setMensagem(editingDocId ? "Atualizando registro..." : "Salvando registro...");
 
     await setDoc(
@@ -377,6 +560,8 @@ form.addEventListener("submit", async (e) => {
     console.error("Erro ao salvar no Firebase:", error);
     setMensagem("Erro ao salvar no Firebase.", true);
     alert("Erro ao salvar no Firebase.");
+  } finally {
+    submitBtn.disabled = false;
   }
 });
 
@@ -453,5 +638,10 @@ lista.addEventListener("click", async (e) => {
   }
 });
 
+// =========================
+// INICIALIZAÇÃO
+// =========================
 atualizarModoFormulario();
+aplicarRegrasHorario();
+setInterval(aplicarRegrasHorario, 60000);
 setMensagem("Sistema pronto para uso.");
