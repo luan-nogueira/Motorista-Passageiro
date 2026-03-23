@@ -125,13 +125,32 @@
         <div class="section-head">
           <div>
             <h2>Últimos checklists</h2>
-            <p>Mostrando somente quem fez</p>
+            <p>Clique no nome para ver, editar ou excluir</p>
           </div>
         </div>
 
         <ul class="records-list" id="lista"></ul>
       </section>
     </main>
+  </div>
+
+  <div class="modal-overlay hidden" id="detailsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalTitle">Detalhes do checklist</h3>
+          <p id="modalSubtitle">Visualização completa do registro</p>
+        </div>
+        <button class="modal-close" id="closeModalBtn" type="button">✕</button>
+      </div>
+
+      <div class="modal-body" id="modalBody"></div>
+
+      <div class="modal-actions">
+        <button class="btn btn-light" id="modalEditBtn" type="button">Editar</button>
+        <button class="btn btn-danger" id="modalDeleteBtn" type="button">Excluir</button>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="app.js"></script>
