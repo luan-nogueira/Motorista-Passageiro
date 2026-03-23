@@ -294,10 +294,26 @@ function renderSummary(summary) {
   overallStatus.textContent = summary.text;
 }
 
-function renderEmptyState() {
-  renderSummary(computeSummary(defaults));
-  renderAlertBanner(computeSummary(defaults), false);
-  renderLivePanel(defaults);
+function renderNoRecordState() {
+  countGood.textContent = "--";
+  countRegular.textContent = "--";
+  countBad.textContent = "--";
+
+  overallStatus.className = "overall-status";
+  overallStatus.textContent = "Nenhum registro salvo para esta data.";
+
+  alertBanner.className = "alert-banner hidden";
+  alertBanner.textContent = "";
+
+  livePanel.innerHTML = `
+    <div class="live-item">
+      <h3>Sem dados registrados</h3>
+      <div class="obs-box" style="margin-top:0;padding-top:0;border-top:none;">
+        Nenhum registro foi salvo para este veículo nesta data.
+      </div>
+    </div>
+  `;
+
   metaDriver.textContent = "--";
   metaPassenger.textContent = "--";
   lastUpdateText.textContent = "Sem salvamento ainda";
@@ -718,7 +734,7 @@ async function deleteCurrentRecord() {
   try {
     await deleteDoc(docRef);
     fillForm(defaults);
-    renderEmptyState();
+    renderNoRecordState();
     setMiniMessage(saveMsg, "Registro apagado com sucesso.");
     showToast(`Registro de ${formatDateBR(currentRecordDate)} apagado.`, "good");
   } catch (error) {
@@ -742,7 +758,7 @@ async function deleteRecordByDate(dateIso) {
 
     if (dateIso === currentRecordDate) {
       fillForm(defaults);
-      renderEmptyState();
+      renderNoRecordState();
     }
 
     showToast(`Registro de ${formatDateBR(dateIso)} apagado.`, "good");
@@ -775,7 +791,7 @@ function subscribeCurrentRecord() {
     (snap) => {
       if (!snap.exists()) {
         fillForm(defaults);
-        renderEmptyState();
+        renderNoRecordState();
         return;
       }
 
@@ -869,7 +885,7 @@ async function init() {
   recordDate.value = todayISO();
   currentRecordDate = recordDate.value;
   fillForm(defaults);
-  renderEmptyState();
+  renderNoRecordState();
   metaDate.textContent = formatDateBR(currentRecordDate);
   updateClock();
   setInterval(updateClock, 1000);
