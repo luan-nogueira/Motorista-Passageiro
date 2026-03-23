@@ -49,7 +49,7 @@ const btnAddVehicle = document.getElementById("btnAddVehicle");
 const vehicleActionMsg = document.getElementById("vehicleActionMsg");
 
 const nomeMotorista = document.getElementById("nomeMotorista");
-const nomePassageiro = document.getElementById("nomePassageiro");
+const nomePassageiros = document.getElementById("nomePassageiros");
 
 const recordDate = document.getElementById("recordDate");
 const btnEnableNotifications = document.getElementById("btnEnableNotifications");
@@ -74,7 +74,7 @@ const livePanel = document.getElementById("livePanel");
 
 const fieldIds = [
   "nomeMotorista",
-  "nomePassageiro",
+  "nomePassageiros",
   "antesCasa_motorista",
   "antesCasa_passageiro",
   "antesCasa_obs",
@@ -88,7 +88,7 @@ const fieldIds = [
 
 const defaults = {
   nomeMotorista: "",
-  nomePassageiro: "",
+  nomePassageiros: "",
   antesCasa_motorista: "ótimo",
   antesCasa_passageiro: "ótimo",
   antesCasa_obs: "",
@@ -160,6 +160,14 @@ function escapeHtml(text = "") {
     .replaceAll("'", "&#039;");
 }
 
+function formatPassengersText(text = "") {
+  return String(text)
+    .split(/\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
 function statusClass(value) {
   if (value === "ótimo") return "good";
   if (value === "regular") return "regular";
@@ -175,21 +183,25 @@ function statusLabel(value) {
 function getFormData() {
   const data = {};
   fieldIds.forEach((id) => {
-    data[id] = document.getElementById(id).value.trim();
+    const el = document.getElementById(id);
+    if (!el) return;
+    data[id] = el.value.trim();
   });
   return data;
 }
 
 function fillForm(data = defaults) {
   fieldIds.forEach((id) => {
-    document.getElementById(id).value = data[id] ?? defaults[id] ?? "";
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = data[id] ?? defaults[id] ?? "";
   });
 }
 
 function hasMeaningfulData(data = {}) {
   return Boolean(
     (data.nomeMotorista || "").trim() ||
-    (data.nomePassageiro || "").trim() ||
+    (data.nomePassageiros || "").trim() ||
     (data.antesCasa_obs || "").trim() ||
     (data.aposAlmoco_obs || "").trim() ||
     (data.antesCliente_obs || "").trim()
@@ -215,10 +227,10 @@ function computeSummary(data) {
 
   if (bad > 0) {
     level = "bad";
-    text = "Alerta crítico: existe ao menos um registro RUIM para execução das atividades.";
+    text = "Alerta crítico: existe ao menos um registro ruim para execução das atividades.";
   } else if (regular > 0) {
     level = "regular";
-    text = "Atenção: existem registros REGULARES que merecem acompanhamento.";
+    text = "Atenção: existem registros regulares que merecem acompanhamento.";
   }
 
   return { good, regular, bad, level, text };
@@ -271,6 +283,8 @@ function applyTheme(theme) {
 }
 
 function initTheme() {
+  if (!btnThemeToggle) return;
+
   const saved = localStorage.getItem("themeFrota");
   if (saved === "dark" || saved === "light") {
     applyTheme(saved);
@@ -330,16 +344,16 @@ function renderAlertBanner(summary, show = true) {
   alertBanner.classList.add(summary.level);
 
   if (summary.level === "bad") {
-    alertBanner.textContent = `🚨 ALERTA AUTOMÁTICO • ${currentVehicleName || "Veículo"} • ${formatDateBR(currentRecordDate)} • Há condição ruim para executar as atividades.`;
+    alertBanner.textContent = `Alerta • ${currentVehicleName || "Veículo"} • ${formatDateBR(currentRecordDate)} • Há condição ruim para executar as atividades.`;
     return;
   }
 
   if (summary.level === "regular") {
-    alertBanner.textContent = `⚠️ ATENÇÃO • ${currentVehicleName || "Veículo"} • ${formatDateBR(currentRecordDate)} • Existem condições regulares que exigem atenção.`;
+    alertBanner.textContent = `Atenção • ${currentVehicleName || "Veículo"} • ${formatDateBR(currentRecordDate)} • Existem condições regulares que exigem atenção.`;
     return;
   }
 
-  alertBanner.textContent = `✅ Tudo em condição ótima para ${currentVehicleName || "o veículo"} em ${formatDateBR(currentRecordDate)}.`;
+  alertBanner.textContent = `Tudo em condição ótima para ${currentVehicleName || "o veículo"} em ${formatDateBR(currentRecordDate)}.`;
 }
 
 function maybeNotify(summary, data) {
@@ -370,10 +384,12 @@ function sendBrowserNotification(title, body) {
 }
 
 function renderLivePanel(data) {
+  const passageirosFormatados = formatPassengersText(data.nomePassageiros || "--") || "--";
+
   livePanel.innerHTML = `
     <div class="team-box">
       <div><strong>Motorista:</strong> ${escapeHtml(data.nomeMotorista || "--")}</div>
-      <div><strong>Passageiro:</strong> ${escapeHtml(data.nomePassageiro || "--")}</div>
+      <div><strong>Passageiros:</strong> ${escapeHtml(passageirosFormatados)}</div>
     </div>
 
     <div class="live-item">
@@ -673,32 +689,32 @@ async function saveCurrentRecord(showMessage = false) {
 
   if (!hasMeaningfulData(form)) {
     if (showMessage) {
-      setMiniMessage(saveMsg, "Preencha motorista, passageiro ou observação antes de salvar.", true);
+      setMiniMessage(saveMsg, "Preencha motorista, passageiros ou observação antes de salvar.", true);
       showToast("Registro vazio não será salvo.", "regular");
     }
     return;
   }
 
-  const summary = computeSummary(form);
-
   const payload = {
     ...form,
+    nomePassageiros: formatPassengersText(form.nomePassageiros || ""),
     date: currentRecordDate,
     vehicleId: currentVehicleId,
     vehicleName: currentVehicleName,
-    summary,
+    summary: computeSummary(form),
     updatedAt: serverTimestamp()
   };
 
   try {
     if (showMessage) setMiniMessage(saveMsg, "Salvando...");
+
     await setDoc(recordDocRef(currentVehicleId, currentRecordDate), payload, { merge: true });
     await setDoc(
       vehicleDocRef(currentVehicleId),
       {
         updatedAt: serverTimestamp(),
         ultimoRegistroData: currentRecordDate,
-        ultimoStatus: summary.level
+        ultimoStatus: payload.summary.level
       },
       { merge: true }
     );
@@ -799,7 +815,7 @@ function subscribeCurrentRecord() {
       fillForm(data);
 
       metaDriver.textContent = data.nomeMotorista || "--";
-      metaPassenger.textContent = data.nomePassageiro || "--";
+      metaPassenger.textContent = formatPassengersText(data.nomePassageiros || "--") || "--";
 
       const summary = data.summary || computeSummary(data);
       renderSummary(summary);
@@ -835,7 +851,10 @@ vehicleSearch.addEventListener("input", applyVehicleFilter);
 btnLastVehicle.addEventListener("click", loadLastVehicle);
 btnDeleteVehicle.addEventListener("click", deleteSelectedVehicle);
 btnAddVehicle.addEventListener("click", addVehicle);
-btnThemeToggle.addEventListener("click", toggleTheme);
+
+if (btnThemeToggle) {
+  btnThemeToggle.addEventListener("click", toggleTheme);
+}
 
 recordDate.addEventListener("change", () => {
   currentRecordDate = recordDate.value || todayISO();
@@ -845,13 +864,14 @@ recordDate.addEventListener("change", () => {
 
 fieldIds.forEach((id) => {
   const el = document.getElementById(id);
+  if (!el) return;
   el.addEventListener("input", scheduleAutoSave);
   el.addEventListener("change", scheduleAutoSave);
 });
 
 btnSave.addEventListener("click", () => saveCurrentRecord(true));
 
-btnReset.addEventListener("click", async () => {
+btnReset.addEventListener("click", () => {
   fillForm(defaults);
   setMiniMessage(saveMsg, "Campos restaurados. Salve manualmente se quiser gravar.");
   showToast("Campos restaurados para o padrão.", "regular");
