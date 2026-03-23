@@ -6,6 +6,7 @@ import {
   setDoc,
   addDoc,
   getDocs,
+  getDoc,
   deleteDoc,
   query,
   orderBy,
@@ -52,6 +53,7 @@ const btnEnableNotifications = document.getElementById("btnEnableNotifications")
 const btnToday = document.getElementById("btnToday");
 const btnSave = document.getElementById("btnSave");
 const btnReset = document.getElementById("btnReset");
+const btnDeleteRecord = document.getElementById("btnDeleteRecord");
 const saveMsg = document.getElementById("saveMsg");
 
 const countGood = document.getElementById("countGood");
@@ -357,16 +359,25 @@ function renderHistory(items) {
   historyList.innerHTML = items.map((item) => {
     const active = item.id === currentRecordDate ? "active" : "";
     const summary = item.summary || computeSummary(item);
+
     return `
       <div class="history-item ${active}" data-date="${item.id}">
         <div class="history-top">
           <div class="history-date">${formatDateBR(item.id)}</div>
-          <span class="badge ${summary.level}">${summary.level === "good" ? "Ótimo" : summary.level === "regular" ? "Atenção" : "Crítico"}</span>
+          <span class="badge ${summary.level}">
+            ${summary.level === "good" ? "Ótimo" : summary.level === "regular" ? "Atenção" : "Crítico"}
+          </span>
         </div>
+
         <div class="history-mini">
           <span class="badge good">Ótimo: ${summary.good ?? 0}</span>
           <span class="badge regular">Regular: ${summary.regular ?? 0}</span>
           <span class="badge bad">Ruim: ${summary.bad ?? 0}</span>
+        </div>
+
+        <div class="history-actions">
+          <button class="history-btn edit" data-edit-date="${item.id}">Editar</button>
+          <button class="history-btn delete" data-delete-date="${item.id}">Apagar</button>
         </div>
       </div>
     `;
@@ -374,10 +385,22 @@ function renderHistory(items) {
 
   historyList.querySelectorAll(".history-item").forEach((item) => {
     item.addEventListener("click", () => {
-      recordDate.value = item.dataset.date;
-      currentRecordDate = item.dataset.date;
-      subscribeCurrentRecord();
-      subscribeHistory();
+      loadRecordDate(item.dataset.date);
+    });
+  });
+
+  historyList.querySelectorAll("[data-edit-date]").forEach((btn) => {
+    btn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      loadRecordDate(btn.dataset.editDate);
+      showToast(`Registro de ${formatDateBR(btn.dataset.editDate)} carregado para edição.`, "good");
+    });
+  });
+
+  historyList.querySelectorAll("[data-delete-date]").forEach((btn) => {
+    btn.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      await deleteRecordByDate(btn.dataset.deleteDate);
     });
   });
 }
@@ -505,6 +528,13 @@ function loadLastVehicle() {
   showToast("Último veículo carregado com sucesso.", "good");
 }
 
+function loadRecordDate(dateIso) {
+  recordDate.value = dateIso;
+  currentRecordDate = dateIso;
+  subscribeCurrentRecord();
+  subscribeHistory();
+}
+
 async function addVehicle() {
   const nome = vehicleName.value.trim().toUpperCase();
   const placa = normalizePlate(vehiclePlate.value);
@@ -567,7 +597,10 @@ async function deleteSelectedVehicle() {
 }
 
 async function saveCurrentRecord(showMessage = false) {
-  if (!currentVehicleId) return;
+  if (!currentVehicleId) {
+    showToast("Selecione um veículo antes de salvar.", "regular");
+    return;
+  }
 
   const form = getFormData();
   const summary = computeSummary(form);
@@ -594,9 +627,75 @@ async function saveCurrentRecord(showMessage = false) {
       { merge: true }
     );
     if (showMessage) setMiniMessage(saveMsg, "Dados salvos com sucesso.");
+    if (showMessage) showToast(`Registro de ${formatDateBR(currentRecordDate)} salvo com sucesso.`, "good");
   } catch (error) {
     console.error(error);
     setMiniMessage(saveMsg, "Erro ao salvar os dados.", true);
+    showToast("Erro ao salvar registro.", "bad");
+  }
+}
+
+async function deleteCurrentRecord() {
+  if (!currentVehicleId) {
+    showToast("Selecione um veículo primeiro.", "regular");
+    return;
+  }
+
+  const docRef = recordDocRef(currentVehicleId, currentRecordDate);
+  const snap = await getDoc(docRef);
+
+  if (!snap.exists()) {
+    showToast("Não existe registro salvo neste dia.", "regular");
+    return;
+  }
+
+  const ok = window.confirm(`Deseja apagar o registro de ${formatDateBR(currentRecordDate)}?`);
+  if (!ok) return;
+
+  try {
+    await deleteDoc(docRef);
+    fillForm(defaults);
+    renderSummary(computeSummary(defaults));
+    renderAlertBanner(computeSummary(defaults));
+    renderLivePanel(defaults);
+    metaDriver.textContent = "--";
+    metaPassenger.textContent = "--";
+    lastUpdateText.textContent = "Sem salvamento ainda";
+    setMiniMessage(saveMsg, "Registro apagado com sucesso.");
+    showToast(`Registro de ${formatDateBR(currentRecordDate)} apagado.`, "good");
+  } catch (error) {
+    console.error(error);
+    setMiniMessage(saveMsg, "Erro ao apagar o registro.", true);
+    showToast("Erro ao apagar registro.", "bad");
+  }
+}
+
+async function deleteRecordByDate(dateIso) {
+  if (!currentVehicleId) {
+    showToast("Selecione um veículo primeiro.", "regular");
+    return;
+  }
+
+  const ok = window.confirm(`Deseja apagar o registro de ${formatDateBR(dateIso)}?`);
+  if (!ok) return;
+
+  try {
+    await deleteDoc(recordDocRef(currentVehicleId, dateIso));
+
+    if (dateIso === currentRecordDate) {
+      fillForm(defaults);
+      renderSummary(computeSummary(defaults));
+      renderAlertBanner(computeSummary(defaults));
+      renderLivePanel(defaults);
+      metaDriver.textContent = "--";
+      metaPassenger.textContent = "--";
+      lastUpdateText.textContent = "Sem salvamento ainda";
+    }
+
+    showToast(`Registro de ${formatDateBR(dateIso)} apagado.`, "good");
+  } catch (error) {
+    console.error(error);
+    showToast("Erro ao apagar registro do histórico.", "bad");
   }
 }
 
@@ -681,6 +780,8 @@ btnReset.addEventListener("click", async () => {
   fillForm(defaults);
   await saveCurrentRecord(true);
 });
+
+btnDeleteRecord.addEventListener("click", deleteCurrentRecord);
 
 btnToday.addEventListener("click", () => {
   recordDate.value = todayISO();
