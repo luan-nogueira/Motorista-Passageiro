@@ -496,17 +496,25 @@ function abrirModal(docId) {
   modalSubtitle.textContent = `Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}`;
   modalBody.innerHTML = montarDetalhesModal(dados);
   detailsModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
 }
 
 function fecharModal() {
   openedDocId = null;
   detailsModal.classList.add("hidden");
+  document.body.style.overflow = "";
 }
 
 closeModalBtn.addEventListener("click", fecharModal);
 
 detailsModal.addEventListener("click", (e) => {
   if (e.target === detailsModal) {
+    fecharModal();
+  }
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !detailsModal.classList.contains("hidden")) {
     fecharModal();
   }
 });
