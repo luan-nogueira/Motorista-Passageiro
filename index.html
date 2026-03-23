@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pt-BR" data-theme="light">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -23,7 +23,7 @@
         <div class="card">
           <div class="card-header">
             <h2>Controle do dia</h2>
-            <p>Preencha uma vez por dia. Registros duplicados na mesma data são bloqueados.</p>
+            <p>Preencha os nomes e a condição por período.</p>
           </div>
 
           <div class="card-body">
@@ -43,17 +43,25 @@
                   <div class="field">
                     <label for="antesCasa_motorista_nome">Motorista</label>
                     <input type="text" id="antesCasa_motorista_nome" placeholder="Nome do motorista" required />
-                    <select id="antesCasa_motorista" required>
+                  </div>
+
+                  <div class="field">
+                    <label for="antesCasa_motorista_status">Situação do motorista</label>
+                    <select id="antesCasa_motorista_status" required>
                       <option value="ótimo">Ótimo para as atividades</option>
                       <option value="regular">Regular para as atividades</option>
                       <option value="ruim">Ruim para as atividades</option>
                     </select>
                   </div>
 
-                  <div class="field">
-                    <label for="antesCasa_passageiro_nome">Passageiro</label>
-                    <input type="text" id="antesCasa_passageiro_nome" placeholder="Nome do passageiro" required />
-                    <select id="antesCasa_passageiro" required>
+                  <div class="field full">
+                    <label for="antesCasa_passageiros">Passageiros</label>
+                    <textarea id="antesCasa_passageiros" placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro" required></textarea>
+                  </div>
+
+                  <div class="field full">
+                    <label for="antesCasa_passageiros_status">Situação dos passageiros</label>
+                    <select id="antesCasa_passageiros_status" required>
                       <option value="ótimo">Ótimo para as atividades</option>
                       <option value="regular">Regular para as atividades</option>
                       <option value="ruim">Ruim para as atividades</option>
@@ -72,17 +80,25 @@
                   <div class="field">
                     <label for="aposAlmoco_motorista_nome">Motorista</label>
                     <input type="text" id="aposAlmoco_motorista_nome" placeholder="Nome do motorista" required />
-                    <select id="aposAlmoco_motorista" required>
+                  </div>
+
+                  <div class="field">
+                    <label for="aposAlmoco_motorista_status">Situação do motorista</label>
+                    <select id="aposAlmoco_motorista_status" required>
                       <option value="ótimo">Ótimo para as atividades</option>
                       <option value="regular">Regular para as atividades</option>
                       <option value="ruim">Ruim para as atividades</option>
                     </select>
                   </div>
 
-                  <div class="field">
-                    <label for="aposAlmoco_passageiro_nome">Passageiro</label>
-                    <input type="text" id="aposAlmoco_passageiro_nome" placeholder="Nome do passageiro" required />
-                    <select id="aposAlmoco_passageiro" required>
+                  <div class="field full">
+                    <label for="aposAlmoco_passageiros">Passageiros</label>
+                    <textarea id="aposAlmoco_passageiros" placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro" required></textarea>
+                  </div>
+
+                  <div class="field full">
+                    <label for="aposAlmoco_passageiros_status">Situação dos passageiros</label>
+                    <select id="aposAlmoco_passageiros_status" required>
                       <option value="ótimo">Ótimo para as atividades</option>
                       <option value="regular">Regular para as atividades</option>
                       <option value="ruim">Ruim para as atividades</option>
@@ -101,17 +117,25 @@
                   <div class="field">
                     <label for="antesCliente_motorista_nome">Motorista</label>
                     <input type="text" id="antesCliente_motorista_nome" placeholder="Nome do motorista" required />
-                    <select id="antesCliente_motorista" required>
+                  </div>
+
+                  <div class="field">
+                    <label for="antesCliente_motorista_status">Situação do motorista</label>
+                    <select id="antesCliente_motorista_status" required>
                       <option value="ótimo">Ótimo para as atividades</option>
                       <option value="regular">Regular para as atividades</option>
                       <option value="ruim">Ruim para as atividades</option>
                     </select>
                   </div>
 
-                  <div class="field">
-                    <label for="antesCliente_passageiro_nome">Passageiro</label>
-                    <input type="text" id="antesCliente_passageiro_nome" placeholder="Nome do passageiro" required />
-                    <select id="antesCliente_passageiro" required>
+                  <div class="field full">
+                    <label for="antesCliente_passageiros">Passageiros</label>
+                    <textarea id="antesCliente_passageiros" placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro" required></textarea>
+                  </div>
+
+                  <div class="field full">
+                    <label for="antesCliente_passageiros_status">Situação dos passageiros</label>
+                    <select id="antesCliente_passageiros_status" required>
                       <option value="ótimo">Ótimo para as atividades</option>
                       <option value="regular">Regular para as atividades</option>
                       <option value="ruim">Ruim para as atividades</option>
