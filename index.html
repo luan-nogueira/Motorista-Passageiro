@@ -31,14 +31,30 @@
         <div class="card">
           <div class="card-header">
             <h2>Controle do dia</h2>
-            <p>Escolha a data do registro.</p>
+            <p>Informe a data e os participantes do registro.</p>
           </div>
 
-          <div class="card-body form-grid">
-            <div class="field full">
-              <label for="recordDate">Data</label>
-              <input type="date" id="recordDate" />
-            </div>
+          <div class="card-body">
+            <form id="formStatus" class="form-grid">
+              <div class="field full">
+                <label for="recordDate">Data</label>
+                <input type="date" id="recordDate" />
+              </div>
+
+              <div class="field">
+                <label for="motorista">Nome do motorista</label>
+                <input type="text" id="motorista" placeholder="Digite o nome do motorista" />
+              </div>
+
+              <div class="field">
+                <label for="passageiro">Nome do passageiro</label>
+                <input type="text" id="passageiro" placeholder="Digite o nome do passageiro" />
+              </div>
+
+              <div class="field full">
+                <button class="btn btn-primary" type="submit">Salvar registro</button>
+              </div>
+            </form>
           </div>
         </div>
 
@@ -191,6 +207,16 @@
           </div>
           <div class="card-body">
             <div class="live-panel" id="livePanel"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Últimos registros</h2>
+            <p>Lista salva em tempo real.</p>
+          </div>
+          <div class="card-body">
+            <ul class="records-list" id="lista"></ul>
           </div>
         </div>
       </section>
