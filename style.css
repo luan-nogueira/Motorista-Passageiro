@@ -237,12 +237,17 @@ textarea:focus{
   border-radius: 20px;
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
   overflow: hidden;
+  transition: 0.2s ease;
 }
 
 .period-head{
   padding: 16px 16px 12px;
   border-bottom: 1px solid var(--border-soft);
   background: var(--surface);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .period-head h3{
@@ -256,11 +261,56 @@ textarea:focus{
   font-size: 13px;
 }
 
+.period-unlock-info{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.period-unlock-info.locked{
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.period-unlock-info.unlocked{
+  background: #ecfdf3;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
 .period-body{
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
   padding: 16px;
+}
+
+.locked-period{
+  border-color: #fcd34d;
+  background: linear-gradient(180deg, #fffdf6 0%, #fffaf0 100%);
+}
+
+.locked-period .period-body{
+  opacity: 0.62;
+}
+
+.locked-period input,
+.locked-period select,
+.locked-period textarea{
+  background: #f8fafc;
+  color: #64748b;
+}
+
+.unlocked-period{
+  border-color: #bbf7d0;
 }
 
 .message-box{
@@ -289,10 +339,10 @@ textarea:focus{
   display: flex;
   gap: 10px;
   justify-content: flex-end;
-  position: sticky;
-  bottom: 8px;
+  position: relative;
+  bottom: auto;
   padding-top: 4px;
-  background: linear-gradient(180deg, rgba(247,249,252,0) 0%, rgba(247,249,252,0.95) 32%);
+  background: transparent;
 }
 
 .btn{
@@ -312,6 +362,12 @@ textarea:focus{
 
 .btn:active{
   transform: translateY(0);
+}
+
+.btn:disabled{
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn-primary{
@@ -542,9 +598,14 @@ textarea:focus{
 
   .period-row,
   .status-card-header,
-  .actions-bar{
+  .actions-bar,
+  .period-head{
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .period-unlock-info{
+    white-space: normal;
   }
 
   .actions-bar .btn,
