@@ -35,6 +35,7 @@ const clockText = document.getElementById("clockText");
 const alertBanner = document.getElementById("alertBanner");
 const toast = document.getElementById("toast");
 const btnThemeToggle = document.getElementById("btnThemeToggle");
+const btnToggleFilledVehicles = document.getElementById("btnToggleFilledVehicles");
 
 const vehicleSearch = document.getElementById("vehicleSearch");
 const vehicleList = document.getElementById("vehicleList");
@@ -72,6 +73,8 @@ const lastUpdateText = document.getElementById("lastUpdateText");
 const historyList = document.getElementById("historyList");
 const livePanel = document.getElementById("livePanel");
 const filledVehiclesList = document.getElementById("filledVehiclesList");
+const filledVehiclesCounter = document.getElementById("filledVehiclesCounter");
+const filledVehiclesHint = document.getElementById("filledVehiclesHint");
 
 const fieldIds = [
   "nomeMotorista",
@@ -285,13 +288,11 @@ function applyTheme(theme) {
 
 function initTheme() {
   if (!btnThemeToggle) return;
-
   const saved = localStorage.getItem("themeFrota");
   if (saved === "dark" || saved === "light") {
     applyTheme(saved);
     return;
   }
-
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
   applyTheme(prefersDark ? "dark" : "light");
 }
@@ -299,6 +300,16 @@ function initTheme() {
 function toggleTheme() {
   const current = root.getAttribute("data-theme") || "light";
   applyTheme(current === "dark" ? "light" : "dark");
+}
+
+function updateFilledVehiclesToggle() {
+  const isHidden = filledVehiclesList.classList.contains("hidden");
+  btnToggleFilledVehicles.textContent = isHidden ? "Ver mais" : "Ver menos";
+}
+
+function toggleFilledVehiclesList() {
+  filledVehiclesList.classList.toggle("hidden");
+  updateFilledVehiclesToggle();
 }
 
 function renderSummary(summary) {
@@ -435,6 +446,13 @@ function renderLivePanel(data) {
 }
 
 function renderFilledVehicles(items) {
+  const total = vehiclesCache.length;
+  const filled = items.length;
+  filledVehiclesCounter.textContent = `${filled} de ${total} veículos preenchidos`;
+  filledVehiclesHint.textContent = filled
+    ? `Data ${formatDateBR(recordDate.value || currentRecordDate)}`
+    : `Nenhum veículo salvo em ${formatDateBR(recordDate.value || currentRecordDate)}`;
+
   if (!items.length) {
     filledVehiclesList.innerHTML = `<div class="filled-empty">Nenhum veículo preencheu nesta data.</div>`;
     return;
@@ -926,9 +944,8 @@ btnLastVehicle.addEventListener("click", loadLastVehicle);
 btnDeleteVehicle.addEventListener("click", deleteSelectedVehicle);
 btnAddVehicle.addEventListener("click", addVehicle);
 
-if (btnThemeToggle) {
-  btnThemeToggle.addEventListener("click", toggleTheme);
-}
+if (btnThemeToggle) btnThemeToggle.addEventListener("click", toggleTheme);
+if (btnToggleFilledVehicles) btnToggleFilledVehicles.addEventListener("click", toggleFilledVehiclesList);
 
 recordDate.addEventListener("change", () => {
   currentRecordDate = recordDate.value || todayISO();
@@ -983,6 +1000,7 @@ async function init() {
   fillForm(defaults);
   renderNoRecordState();
   renderFilledVehicles([]);
+  updateFilledVehiclesToggle();
   metaDate.textContent = formatDateBR(currentRecordDate);
   updateClock();
   setInterval(updateClock, 1000);

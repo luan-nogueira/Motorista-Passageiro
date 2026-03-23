@@ -72,10 +72,7 @@
 
               <div class="field">
                 <label for="nomePassageiros">Passageiros</label>
-                <textarea
-                  id="nomePassageiros"
-                  placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro"
-                ></textarea>
+                <textarea id="nomePassageiros" placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro"></textarea>
               </div>
             </div>
           </div>
@@ -84,10 +81,40 @@
         <div class="card compact-card">
           <div class="card-header">
             <h2>Veículos preenchidos no dia</h2>
-            <p>Mostra só quem já teve registro salvo na data selecionada.</p>
+            <p>Resumo rápido sem aumentar muito a página.</p>
           </div>
           <div class="card-body">
-            <div class="filled-vehicles-list" id="filledVehiclesList"></div>
+            <div class="filled-summary-bar">
+              <div class="filled-summary-main">
+                <strong id="filledVehiclesCounter">0 de 0 veículos preenchidos</strong>
+                <span id="filledVehiclesHint">Selecione uma data para acompanhar.</span>
+              </div>
+              <button class="btn btn-secondary btn-small" id="btnToggleFilledVehicles" type="button">Ver mais</button>
+            </div>
+            <div class="filled-vehicles-list hidden" id="filledVehiclesList"></div>
+          </div>
+        </div>
+
+        <div class="card compact-card">
+          <div class="card-header">
+            <h2>Veículos pendentes no dia</h2>
+            <p>Mostra quem ainda não preencheu e permite avisar no WhatsApp.</p>
+          </div>
+          <div class="card-body">
+            <div class="filled-summary-bar">
+              <div class="filled-summary-main">
+                <strong id="pendingVehiclesCounter">0 veículos pendentes</strong>
+                <span id="pendingVehiclesHint">Nenhum cálculo feito ainda.</span>
+              </div>
+              <button class="btn btn-secondary btn-small" id="btnTogglePendingVehicles" type="button">Ver mais</button>
+            </div>
+
+            <div class="pending-action-bar">
+              <button class="btn btn-primary" id="btnNotifyWhatsapp" type="button">Enviar alerta no WhatsApp</button>
+              <span class="mini-status" id="whatsStatus">Configure o backend do WhatsApp para ativar.</span>
+            </div>
+
+            <div class="filled-vehicles-list hidden" id="pendingVehiclesList"></div>
           </div>
         </div>
 
