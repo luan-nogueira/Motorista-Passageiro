@@ -33,8 +33,17 @@ const form = document.getElementById("formStatus");
 const lista = document.getElementById("lista");
 const saveMsg = document.getElementById("saveMsg");
 const recordDate = document.getElementById("recordDate");
+const formTitle = document.getElementById("formTitle");
+const formSubtitle = document.getElementById("formSubtitle");
+const submitBtn = document.getElementById("submitBtn");
+const cancelEditBtn = document.getElementById("cancelEditBtn");
+
+const totalRegistrosEl = document.getElementById("totalRegistros");
+const totalAlertasEl = document.getElementById("totalAlertas");
+const ultimaAtualizacaoEl = document.getElementById("ultimaAtualizacao");
 
 let editingDocId = null;
+let currentDocsCache = [];
 
 // =========================
 // DATA
@@ -53,7 +62,7 @@ recordDate.value = hojeISO();
 // =========================
 function setMensagem(msg, erro = false) {
   saveMsg.textContent = msg;
-  saveMsg.style.color = erro ? "#dc2626" : "#166534";
+  saveMsg.className = erro ? "message-box error" : "message-box success";
 }
 
 function normalizarStatus(status) {
@@ -69,9 +78,9 @@ function classeStatus(status) {
 
 function textoStatus(status) {
   const valor = normalizarStatus(status);
-  if (valor === "ótimo" || valor === "otimo") return "Ótimo para as atividades";
-  if (valor === "regular") return "Regular para as atividades";
-  return "Ruim para as atividades";
+  if (valor === "ótimo" || valor === "otimo") return "Ótimo";
+  if (valor === "regular") return "Regular";
+  return "Ruim";
 }
 
 function formatarDataBR(dataISO) {
@@ -85,6 +94,7 @@ function formatarTimestamp(timestamp) {
   try {
     const data = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     if (isNaN(data.getTime())) return "Agora";
+
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
       timeStyle: "short"
@@ -129,8 +139,28 @@ function registroTemRuim(dados) {
   );
 }
 
+function contarAlertas(registros) {
+  return registros.filter((item) => registroTemRuim(item)).length;
+}
+
+function atualizarResumo(registros) {
+  totalRegistrosEl.textContent = registros.length;
+  totalAlertasEl.textContent = contarAlertas(registros);
+
+  if (!registros.length) {
+    ultimaAtualizacaoEl.textContent = "--";
+    return;
+  }
+
+  const maisRecente = registros[0];
+  ultimaAtualizacaoEl.textContent = formatarTimestamp(
+    maisRecente.atualizadoEm || maisRecente.criadoEm
+  );
+}
+
 function montarLinha(papel, nomeOuLista, status) {
   const ruim = normalizarStatus(status) === "ruim";
+
   return `
     <div class="period-row ${ruim ? "row-bad" : ""}">
       <div class="period-role">
@@ -163,13 +193,13 @@ function montarCard(dados) {
         <div>
           <h3 class="status-card-title">Registro do dia ${formatarDataBR(dados.dataRegistro)}</h3>
           <p class="status-card-subtitle">
-            ${alerta ? "Atenção: existe status ruim neste registro" : "Atualizado em tempo real"}
+            ${alerta ? "Existe pelo menos um status ruim neste registro." : "Registro dentro do padrão."}
           </p>
         </div>
         <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
       </div>
 
-      ${alerta ? `<div class="alert-bad">⚠ Existe pelo menos um participante com status ruim.</div>` : ""}
+      ${alerta ? `<div class="alert-bad">⚠ Atenção: há condição ruim informada neste registro.</div>` : ""}
 
       <div class="period-list">
         ${montarPeriodo("Antes de sair de casa", dados.antesCasa)}
@@ -269,13 +299,39 @@ function limparFormulario() {
   form.reset();
   recordDate.value = hojeISO();
   editingDocId = null;
+  atualizarModoFormulario();
 }
 
-function atualizarTextoBotao() {
-  const submitBtn = form.querySelector('button[type="submit"]');
-  if (submitBtn) {
-    submitBtn.textContent = editingDocId ? "Atualizar registro" : "Salvar registro do dia";
+function atualizarModoFormulario() {
+  const emEdicao = !!editingDocId;
+
+  submitBtn.textContent = emEdicao ? "Atualizar registro" : "Salvar registro do dia";
+  cancelEditBtn.hidden = !emEdicao;
+
+  formTitle.textContent = emEdicao ? "Editar registro" : "Controle do dia";
+  formSubtitle.textContent = emEdicao
+    ? "Altere os dados do registro selecionado e salve novamente."
+    : "Preencha os nomes e a condição por período.";
+}
+
+function renderizarLista(registros) {
+  lista.innerHTML = "";
+
+  if (!registros.length) {
+    lista.innerHTML = `
+      <li class="empty-state">
+        <strong>Nenhum registro encontrado.</strong>
+        <span>Os registros salvos aparecerão aqui em tempo real.</span>
+      </li>
+    `;
+    return;
   }
+
+  registros.forEach((dados) => {
+    const li = document.createElement("li");
+    li.innerHTML = montarCard(dados);
+    lista.appendChild(li);
+  });
 }
 
 // =========================
@@ -304,7 +360,7 @@ form.addEventListener("submit", async (e) => {
       {
         ...dados,
         dataRegistro: docId,
-        criadoEm: editingDocId ? undefined : serverTimestamp(),
+        ...(editingDocId ? {} : { criadoEm: serverTimestamp() }),
         atualizadoEm: serverTimestamp()
       },
       { merge: true }
@@ -317,12 +373,19 @@ form.addEventListener("submit", async (e) => {
     );
 
     limparFormulario();
-    atualizarTextoBotao();
   } catch (error) {
     console.error("Erro ao salvar no Firebase:", error);
     setMensagem("Erro ao salvar no Firebase.", true);
     alert("Erro ao salvar no Firebase.");
   }
+});
+
+// =========================
+// CANCELAR EDIÇÃO
+// =========================
+cancelEditBtn.addEventListener("click", () => {
+  limparFormulario();
+  setMensagem("Edição cancelada.");
 });
 
 // =========================
@@ -334,23 +397,9 @@ const q = query(colRef, orderBy("dataRegistro", "desc"));
 onSnapshot(
   q,
   (snapshot) => {
-    lista.innerHTML = "";
-
-    if (snapshot.empty) {
-      lista.innerHTML = `
-        <li class="empty-state">
-          Nenhum registro encontrado ainda.
-        </li>
-      `;
-      return;
-    }
-
-    snapshot.forEach((registro) => {
-      const dados = registro.data();
-      const li = document.createElement("li");
-      li.innerHTML = montarCard(dados);
-      lista.appendChild(li);
-    });
+    currentDocsCache = snapshot.docs.map((registro) => registro.data());
+    renderizarLista(currentDocsCache);
+    atualizarResumo(currentDocsCache);
   },
   (error) => {
     console.error("Erro ao carregar registros:", error);
@@ -367,23 +416,16 @@ lista.addEventListener("click", async (e) => {
 
   if (editBtn) {
     const docId = editBtn.dataset.id;
-    const card = editBtn.closest("li");
-    if (!card) return;
+    const dados = currentDocsCache.find((item) => item.dataRegistro === docId);
 
-    const cardTitle = card.querySelector(".status-card-title")?.textContent || "";
-    const subtitulo = card.querySelector(".status-card-subtitle")?.textContent || "";
-
-    const snapshotItems = Array.from(lista.querySelectorAll(".btn-edit"));
-    const index = snapshotItems.findIndex((btn) => btn.dataset.id === docId);
-
-    const docs = currentDocsCache;
-    const dados = docs[index];
-
-    if (!dados) return;
+    if (!dados) {
+      setMensagem("Não foi possível localizar o registro para edição.", true);
+      return;
+    }
 
     preencherFormulario(dados);
     editingDocId = docId;
-    atualizarTextoBotao();
+    atualizarModoFormulario();
     setMensagem(`Modo edição ativado para ${formatarDataBR(docId)}.`);
     window.scrollTo({ top: 0, behavior: "smooth" });
     return;
@@ -400,7 +442,6 @@ lista.addEventListener("click", async (e) => {
 
       if (editingDocId === docId) {
         limparFormulario();
-        atualizarTextoBotao();
       }
 
       setMensagem(`Registro do dia ${formatarDataBR(docId)} excluído com sucesso.`);
@@ -412,39 +453,5 @@ lista.addEventListener("click", async (e) => {
   }
 });
 
-// =========================
-// CACHE PARA EDIÇÃO
-// =========================
-let currentDocsCache = [];
-
-onSnapshot(
-  q,
-  (snapshot) => {
-    currentDocsCache = [];
-    lista.innerHTML = "";
-
-    if (snapshot.empty) {
-      lista.innerHTML = `
-        <li class="empty-state">
-          Nenhum registro encontrado ainda.
-        </li>
-      `;
-      return;
-    }
-
-    snapshot.forEach((registro) => {
-      const dados = registro.data();
-      currentDocsCache.push(dados);
-
-      const li = document.createElement("li");
-      li.innerHTML = montarCard(dados);
-      lista.appendChild(li);
-    });
-  },
-  (error) => {
-    console.error("Erro ao carregar registros:", error);
-    setMensagem("Erro ao carregar registros do Firebase.", true);
-  }
-);
-
-atualizarTextoBotao();
+atualizarModoFormulario();
+setMensagem("Sistema pronto para uso.");
