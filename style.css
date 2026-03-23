@@ -620,3 +620,26 @@ textarea:focus{
     width: 100%;
   }
 }
+.status-card-mini{
+  padding: 12px 14px;
+  border-radius: 18px;
+}
+
+.status-card-mini-content{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.status-card-mini .status-card-title{
+  margin: 0;
+  font-size: 16px;
+}
+
+.status-card-mini .status-card-subtitle{
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
