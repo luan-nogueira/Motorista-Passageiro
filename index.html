@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Condição • Frota</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">🚗</div>
+        <div>
+          <h1>Painel de Condição</h1>
+          <p>Frota • tempo real • histórico diário</p>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <div class="chip online" id="connectionStatus">Conectando...</div>
+        <div class="chip" id="clockText">--:--</div>
+      </div>
+    </header>
+
+    <section class="alert-banner hidden" id="alertBanner"></section>
+
+    <main class="layout">
+      <section class="panel left-panel">
+        <div class="card">
+          <div class="card-header">
+            <h2>Controle</h2>
+            <p>Escolha o veículo e o dia do registro.</p>
+          </div>
+
+          <div class="card-body form-grid">
+            <div class="field">
+              <label for="vehicleSelect">Veículo</label>
+              <select id="vehicleSelect"></select>
+            </div>
+
+            <div class="field">
+              <label for="recordDate">Data</label>
+              <input type="date" id="recordDate" />
+            </div>
+
+            <div class="field field-inline">
+              <button class="btn btn-primary" id="btnToday">Hoje</button>
+              <button class="btn btn-secondary" id="btnEnableNotifications">Ativar notificações</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Cadastrar veículo</h2>
+            <p>Adicione quantos veículos quiser.</p>
+          </div>
+
+          <div class="card-body form-grid">
+            <div class="field">
+              <label for="vehicleName">Nome do veículo</label>
+              <input type="text" id="vehicleName" placeholder="Ex.: Polo 01" />
+            </div>
+
+            <div class="field">
+              <label for="vehiclePlate">Placa</label>
+              <input type="text" id="vehiclePlate" placeholder="ABC1D23" maxlength="8" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleType">Tipo</label>
+              <input type="text" id="vehicleType" placeholder="Ex.: Leve, Van, Sedan..." />
+            </div>
+
+            <div class="field field-inline">
+              <button class="btn btn-primary" id="btnAddVehicle">Adicionar veículo</button>
+              <span class="mini-status" id="vehicleActionMsg"></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card summary-card">
+          <div class="card-header">
+            <h2>Resumo do dia</h2>
+            <p>Leitura automática do registro atual.</p>
+          </div>
+
+          <div class="card-body">
+            <div class="summary-grid">
+              <div class="summary-box good">
+                <span>Ótimo</span>
+                <strong id="countGood">0</strong>
+              </div>
+              <div class="summary-box regular">
+                <span>Regular</span>
+                <strong id="countRegular">0</strong>
+              </div>
+              <div class="summary-box bad">
+                <span>Ruim</span>
+                <strong id="countBad">0</strong>
+              </div>
+            </div>
+
+            <div class="overall-status good" id="overallStatus">
+              Aguardando dados...
+            </div>
+
+            <div class="meta-lines">
+              <div><strong>Veículo:</strong> <span id="metaVehicle">--</span></div>
+              <div><strong>Data:</strong> <span id="metaDate">--</span></div>
+              <div><strong>Última atualização:</strong> <span id="lastUpdateText">--</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card history-card">
+          <div class="card-header">
+            <h2>Histórico por dia</h2>
+            <p>Clique em um dia para carregar o registro.</p>
+          </div>
+          <div class="card-body">
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel right-panel">
+        <div class="period-grid">
+          <article class="card period-card">
+            <div class="card-header">
+              <h2>Antes de sair de casa</h2>
+              <p>Registro inicial do dia.</p>
+            </div>
+            <div class="card-body form-grid">
+              <div class="field">
+                <label for="antesCasa_motorista">Motorista</label>
+                <select id="antesCasa_motorista">
+                  <option value="ótimo">Ótimo</option>
+                  <option value="regular">Regular</option>
+                  <option value="ruim">Ruim</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="antesCasa_passageiro">Passageiro</label>
+                <select id="antesCasa_passageiro">
+                  <option value="ótimo">Ótimo</option>
+                  <option value="regular">Regular</option>
+                  <option value="ruim">Ruim</option>
+                </select>
+              </div>
+
+              <div class="field full">
+                <label for="antesCasa_obs">Observação</label>
+                <textarea id="antesCasa_obs" placeholder="Observações desse período"></textarea>
+              </div>
+            </div>
+          </article>
+
+          <article class="card period-card">
+            <div class="card-header">
+              <h2>Após almoço</h2>
+              <p>Registro intermediário.</p>
+            </div>
+            <div class="card-body form-grid">
+              <div class="field">
+                <label for="aposAlmoco_motorista">Motorista</label>
+                <select id="aposAlmoco_motorista">
+                  <option value="ótimo">Ótimo</option>
+                  <option value="regular">Regular</option>
+                  <option value="ruim">Ruim</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="aposAlmoco_passageiro">Passageiro</label>
+                <select id="aposAlmoco_passageiro">
+                  <option value="ótimo">Ótimo</option>
+                  <option value="regular">Regular</option>
+                  <option value="ruim">Ruim</option>
+                </select>
+              </div>
+
+              <div class="field full">
+                <label for="aposAlmoco_obs">Observação</label>
+                <textarea id="aposAlmoco_obs" placeholder="Observações desse período"></textarea>
+              </div>
+            </div>
+          </article>
+
+          <article class="card period-card">
+            <div class="card-header">
+              <h2>Antes de sair do cliente</h2>
+              <p>Registro final antes do retorno.</p>
+            </div>
+            <div class="card-body form-grid">
+              <div class="field">
+                <label for="antesCliente_motorista">Motorista</label>
+                <select id="antesCliente_motorista">
+                  <option value="ótimo">Ótimo</option>
+                  <option value="regular">Regular</option>
+                  <option value="ruim">Ruim</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="antesCliente_passageiro">Passageiro</label>
+                <select id="antesCliente_passageiro">
+                  <option value="ótimo">Ótimo</option>
+                  <option value="regular">Regular</option>
+                  <option value="ruim">Ruim</option>
+                </select>
+              </div>
+
+              <div class="field full">
+                <label for="antesCliente_obs">Observação</label>
+                <textarea id="antesCliente_obs" placeholder="Observações desse período"></textarea>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Ações</h2>
+            <p>O sistema já salva sozinho, mas você também pode salvar manualmente.</p>
+          </div>
+
+          <div class="card-body action-bar">
+            <button class="btn btn-primary" id="btnSave">Salvar agora</button>
+            <button class="btn btn-secondary" id="btnReset">Restaurar padrão</button>
+            <span class="mini-status" id="saveMsg">Nenhuma ação executada.</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Painel ao vivo</h2>
+            <p>Leitura clara do registro atual.</p>
+          </div>
+          <div class="card-body">
+            <div class="live-panel" id="livePanel"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
