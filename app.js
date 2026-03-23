@@ -2,7 +2,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import {
   getFirestore,
   collection,
-  addDoc,
+  doc,
+  getDoc,
+  setDoc,
   onSnapshot,
   serverTimestamp,
   query,
@@ -29,17 +31,36 @@ const db = getFirestore(app);
 // =========================
 const form = document.getElementById("formStatus");
 const lista = document.getElementById("lista");
+const saveMsg = document.getElementById("saveMsg");
+const recordDate = document.getElementById("recordDate");
+
+// =========================
+// DATA PADRÃO
+// =========================
+function hojeISO() {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+recordDate.value = hojeISO();
 
 // =========================
 // HELPERS
 // =========================
+function setMensagem(texto, erro = false) {
+  saveMsg.textContent = texto;
+  saveMsg.style.color = erro ? "#b91c1c" : "#475569";
+}
+
 function normalizarStatus(status) {
   return String(status || "").trim().toLowerCase();
 }
 
 function classeStatus(status) {
   const valor = normalizarStatus(status);
-
   if (valor === "ótimo" || valor === "otimo") return "badge-otimo";
   if (valor === "regular") return "badge-regular";
   return "badge-ruim";
@@ -47,22 +68,22 @@ function classeStatus(status) {
 
 function textoStatus(status) {
   const valor = normalizarStatus(status);
-
   if (valor === "ótimo" || valor === "otimo") return "Ótimo para as atividades";
   if (valor === "regular") return "Regular para as atividades";
   return "Ruim para as atividades";
 }
 
-function formatarData(timestamp) {
-  if (!timestamp) return "Aguardando horário...";
+function formatarDataISOParaBR(dataISO) {
+  if (!dataISO) return "--";
+  const [ano, mes, dia] = dataISO.split("-");
+  return `${dia}/${mes}/${ano}`;
+}
 
+function formatarTimestamp(timestamp) {
+  if (!timestamp) return "Aguardando horário...";
   try {
     const data = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-
-    if (isNaN(data.getTime())) {
-      return "Aguardando horário...";
-    }
-
+    if (isNaN(data.getTime())) return "Aguardando horário...";
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
       timeStyle: "short"
@@ -72,105 +93,172 @@ function formatarData(timestamp) {
   }
 }
 
-function montarLinha(role, status) {
+function escapeHtml(valor) {
+  return String(valor ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function montarLinha(papel, pessoa) {
   return `
     <div class="period-row">
-      <span class="period-role">${role}</span>
-      <span class="status-badge ${classeStatus(status)}">${textoStatus(status)}</span>
+      <div class="period-role">
+        <strong>${papel}</strong>
+        <span>${escapeHtml(pessoa?.nome || "-")}</span>
+      </div>
+      <span class="status-badge ${classeStatus(pessoa?.status)}">${textoStatus(pessoa?.status)}</span>
     </div>
   `;
 }
 
-function montarCard(d) {
+function montarCard(dados) {
   return `
     <article class="status-card">
       <div class="status-card-header">
         <div>
-          <h3 class="status-card-title">Avaliação de condições</h3>
-          <p class="status-card-subtitle">Registro de motorista e passageiro</p>
+          <h3 class="status-card-title">Registro do dia ${formatarDataISOParaBR(dados.dataRegistro)}</h3>
+          <p class="status-card-subtitle">Avaliação de motorista e passageiro por período</p>
         </div>
-        <span class="card-date">${formatarData(d.criadoEm)}</span>
-      </div>
-
-      <div class="person-grid">
-        <div class="person-box">
-          <span class="person-label">Motorista</span>
-          <div class="person-name">${d.motorista || "-"}</div>
-        </div>
-
-        <div class="person-box">
-          <span class="person-label">Passageiro</span>
-          <div class="person-name">${d.passageiro || "-"}</div>
-        </div>
+        <span class="card-date">${formatarTimestamp(dados.criadoEm)}</span>
       </div>
 
       <div class="period-list">
-        <section class="period-card">
+        <section class="period-card-view">
           <h4 class="period-title">Antes de sair de casa</h4>
-          ${montarLinha("Motorista", d.antesCasa_motorista)}
-          ${montarLinha("Passageiro", d.antesCasa_passageiro)}
+          ${montarLinha("Motorista", dados.antesCasa?.motorista)}
+          ${montarLinha("Passageiro", dados.antesCasa?.passageiro)}
         </section>
 
-        <section class="period-card">
+        <section class="period-card-view">
           <h4 class="period-title">Após almoço</h4>
-          ${montarLinha("Motorista", d.aposAlmoco_motorista)}
-          ${montarLinha("Passageiro", d.aposAlmoco_passageiro)}
+          ${montarLinha("Motorista", dados.aposAlmoco?.motorista)}
+          ${montarLinha("Passageiro", dados.aposAlmoco?.passageiro)}
         </section>
 
-        <section class="period-card">
+        <section class="period-card-view">
           <h4 class="period-title">Antes de sair do cliente</h4>
-          ${montarLinha("Motorista", d.antesCliente_motorista)}
-          ${montarLinha("Passageiro", d.antesCliente_passageiro)}
+          ${montarLinha("Motorista", dados.antesCliente?.motorista)}
+          ${montarLinha("Passageiro", dados.antesCliente?.passageiro)}
         </section>
       </div>
     </article>
   `;
 }
 
-// =========================
-// FIRESTORE
-// =========================
-const col = collection(db, "status");
+function pegarValor(id) {
+  return document.getElementById(id).value.trim();
+}
+
+function montarDadosFormulario() {
+  return {
+    dataRegistro: recordDate.value,
+    antesCasa: {
+      motorista: {
+        nome: pegarValor("antesCasa_motorista_nome"),
+        status: document.getElementById("antesCasa_motorista").value
+      },
+      passageiro: {
+        nome: pegarValor("antesCasa_passageiro_nome"),
+        status: document.getElementById("antesCasa_passageiro").value
+      }
+    },
+    aposAlmoco: {
+      motorista: {
+        nome: pegarValor("aposAlmoco_motorista_nome"),
+        status: document.getElementById("aposAlmoco_motorista").value
+      },
+      passageiro: {
+        nome: pegarValor("aposAlmoco_passageiro_nome"),
+        status: document.getElementById("aposAlmoco_passageiro").value
+      }
+    },
+    antesCliente: {
+      motorista: {
+        nome: pegarValor("antesCliente_motorista_nome"),
+        status: document.getElementById("antesCliente_motorista").value
+      },
+      passageiro: {
+        nome: pegarValor("antesCliente_passageiro_nome"),
+        status: document.getElementById("antesCliente_passageiro").value
+      }
+    }
+  };
+}
+
+function validarDados(dados) {
+  if (!dados.dataRegistro) {
+    return "Selecione a data.";
+  }
+
+  const campos = [
+    dados.antesCasa.motorista.nome,
+    dados.antesCasa.passageiro.nome,
+    dados.aposAlmoco.motorista.nome,
+    dados.aposAlmoco.passageiro.nome,
+    dados.antesCliente.motorista.nome,
+    dados.antesCliente.passageiro.nome
+  ];
+
+  if (campos.some((item) => !item)) {
+    return "Preencha todos os nomes de motorista e passageiro.";
+  }
+
+  return "";
+}
 
 // =========================
-// SALVAR
+// SALVAR COM BLOQUEIO POR DIA
 // =========================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const motorista = document.getElementById("motorista").value.trim();
-  const passageiro = document.getElementById("passageiro").value.trim();
+  const dados = montarDadosFormulario();
+  const erroValidacao = validarDados(dados);
 
-  if (!motorista || !passageiro) {
-    alert("Preencha o nome do motorista e do passageiro.");
+  if (erroValidacao) {
+    setMensagem(erroValidacao, true);
+    alert(erroValidacao);
     return;
   }
 
-  const dados = {
-    motorista,
-    passageiro,
-    antesCasa_motorista: document.getElementById("antesCasa_motorista").value,
-    antesCasa_passageiro: document.getElementById("antesCasa_passageiro").value,
-    aposAlmoco_motorista: document.getElementById("aposAlmoco_motorista").value,
-    aposAlmoco_passageiro: document.getElementById("aposAlmoco_passageiro").value,
-    antesCliente_motorista: document.getElementById("antesCliente_motorista").value,
-    antesCliente_passageiro: document.getElementById("antesCliente_passageiro").value,
-    criadoEm: serverTimestamp()
-  };
+  const docId = dados.dataRegistro;
+  const registroRef = doc(db, "status", docId);
 
   try {
-    await addDoc(col, dados);
+    setMensagem("Verificando duplicidade...");
+
+    const registroExistente = await getDoc(registroRef);
+
+    if (registroExistente.exists()) {
+      const mensagem = `Já existe um registro salvo para a data ${formatarDataISOParaBR(docId)}.`;
+      setMensagem(mensagem, true);
+      alert(mensagem);
+      return;
+    }
+
+    await setDoc(registroRef, {
+      ...dados,
+      criadoEm: serverTimestamp()
+    });
+
+    setMensagem(`Registro do dia ${formatarDataISOParaBR(docId)} salvo com sucesso.`);
     form.reset();
+    recordDate.value = hojeISO();
   } catch (error) {
-    console.error("Erro ao salvar no Firebase:", error);
-    alert("Erro ao salvar o registro. Verifique o Firebase.");
+    console.error("Erro ao salvar:", error);
+    setMensagem("Erro ao salvar no Firebase.", true);
+    alert("Erro ao salvar no Firebase.");
   }
 });
 
 // =========================
 // LISTAGEM EM TEMPO REAL
 // =========================
-const q = query(col, orderBy("criadoEm", "desc"));
+const registrosRef = collection(db, "status");
+const q = query(registrosRef, orderBy("dataRegistro", "desc"));
 
 onSnapshot(q, (snapshot) => {
   lista.innerHTML = "";
@@ -184,10 +272,10 @@ onSnapshot(q, (snapshot) => {
     return;
   }
 
-  snapshot.forEach((doc) => {
-    const d = doc.data();
+  snapshot.forEach((registro) => {
+    const dados = registro.data();
     const li = document.createElement("li");
-    li.innerHTML = montarCard(d);
+    li.innerHTML = montarCard(dados);
     lista.appendChild(li);
   });
 });
