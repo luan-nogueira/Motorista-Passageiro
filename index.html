@@ -29,16 +29,39 @@
       <section class="panel left-panel">
         <div class="card">
           <div class="card-header">
+            <h2>Seleção do veículo</h2>
+            <p>Busque por nome ou placa e selecione rapidamente.</p>
+          </div>
+
+          <div class="card-body">
+            <div class="field">
+              <label for="vehicleSearch">Buscar veículo</label>
+              <input type="text" id="vehicleSearch" placeholder="Ex.: Polo, Argo, TEA8F37..." />
+            </div>
+
+            <div class="field">
+              <label>Lista de veículos</label>
+              <div class="vehicle-list" id="vehicleList"></div>
+            </div>
+
+            <div class="field field-inline">
+              <button class="btn btn-secondary" id="btnLastVehicle">Último veículo usado</button>
+            </div>
+
+            <div class="selected-vehicle-box" id="selectedVehicleBox">
+              <div class="selected-title">Veículo selecionado</div>
+              <div class="selected-main" id="selectedVehicleText">Nenhum veículo selecionado</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
             <h2>Controle</h2>
-            <p>Escolha o veículo e o dia do registro.</p>
+            <p>Escolha o dia do registro atual.</p>
           </div>
 
           <div class="card-body form-grid">
-            <div class="field">
-              <label for="vehicleSelect">Veículo</label>
-              <select id="vehicleSelect"></select>
-            </div>
-
             <div class="field">
               <label for="recordDate">Data</label>
               <input type="date" id="recordDate" />
@@ -47,35 +70,6 @@
             <div class="field field-inline">
               <button class="btn btn-primary" id="btnToday">Hoje</button>
               <button class="btn btn-secondary" id="btnEnableNotifications">Ativar notificações</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h2>Cadastrar veículo</h2>
-            <p>Adicione quantos veículos quiser.</p>
-          </div>
-
-          <div class="card-body form-grid">
-            <div class="field">
-              <label for="vehicleName">Nome do veículo</label>
-              <input type="text" id="vehicleName" placeholder="Ex.: Polo 01" />
-            </div>
-
-            <div class="field">
-              <label for="vehiclePlate">Placa</label>
-              <input type="text" id="vehiclePlate" placeholder="ABC1D23" maxlength="8" />
-            </div>
-
-            <div class="field">
-              <label for="vehicleType">Tipo</label>
-              <input type="text" id="vehicleType" placeholder="Ex.: Leve, Van, Sedan..." />
-            </div>
-
-            <div class="field field-inline">
-              <button class="btn btn-primary" id="btnAddVehicle">Adicionar veículo</button>
-              <span class="mini-status" id="vehicleActionMsg"></span>
             </div>
           </div>
         </div>
