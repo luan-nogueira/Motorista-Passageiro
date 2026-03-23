@@ -56,50 +56,27 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card team-card">
           <div class="card-header">
-            <h2>Adicionar veículo à frota</h2>
-            <p>Cadastre somente os veículos que você quiser usar.</p>
+            <h2>Equipe em uso</h2>
+            <p>Defina quem está no veículo neste dia.</p>
           </div>
 
-          <div class="card-body form-grid">
-            <div class="field">
-              <label for="vehicleName">Veículo</label>
-              <input type="text" id="vehicleName" placeholder="Ex.: POLO" />
-            </div>
+          <div class="card-body">
+            <div class="team-highlight">
+              <div class="team-highlight-title">Equipe atual do veículo</div>
 
-            <div class="field">
-              <label for="vehiclePlate">Placa</label>
-              <input type="text" id="vehiclePlate" placeholder="ABC1D23" maxlength="8" />
-            </div>
+              <div class="team-fields">
+                <div class="field">
+                  <label for="nomeMotorista">🚗 Motorista</label>
+                  <input type="text" id="nomeMotorista" placeholder="Digite o nome do motorista" />
+                </div>
 
-            <div class="field">
-              <label for="vehicleType">Tipo</label>
-              <input type="text" id="vehicleType" placeholder="Ex.: Leve, Picape..." />
-            </div>
-
-            <div class="field field-inline">
-              <button class="btn btn-primary" id="btnAddVehicle">Adicionar veículo</button>
-              <span class="mini-status" id="vehicleActionMsg">Nenhuma ação executada.</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header">
-            <h2>Equipe do veículo</h2>
-            <p>Informe quem está no veículo nesse dia.</p>
-          </div>
-
-          <div class="card-body form-grid">
-            <div class="field">
-              <label for="nomeMotorista">Nome do motorista</label>
-              <input type="text" id="nomeMotorista" placeholder="Digite o nome do motorista" />
-            </div>
-
-            <div class="field">
-              <label for="nomePassageiro">Nome do passageiro</label>
-              <input type="text" id="nomePassageiro" placeholder="Digite o nome do passageiro" />
+                <div class="field">
+                  <label for="nomePassageiro">👥 Passageiro</label>
+                  <input type="text" id="nomePassageiro" placeholder="Digite o nome do passageiro" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -166,6 +143,35 @@
           </div>
           <div class="card-body">
             <div class="history-list" id="historyList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Adicionar veículo à frota</h2>
+            <p>Cadastre somente os veículos que você quiser usar.</p>
+          </div>
+
+          <div class="card-body form-grid">
+            <div class="field">
+              <label for="vehicleName">Veículo</label>
+              <input type="text" id="vehicleName" placeholder="Ex.: POLO" />
+            </div>
+
+            <div class="field">
+              <label for="vehiclePlate">Placa</label>
+              <input type="text" id="vehiclePlate" placeholder="ABC1D23" maxlength="8" />
+            </div>
+
+            <div class="field">
+              <label for="vehicleType">Tipo</label>
+              <input type="text" id="vehicleType" placeholder="Ex.: Leve, Picape..." />
+            </div>
+
+            <div class="field field-inline">
+              <button class="btn btn-primary" id="btnAddVehicle">Adicionar veículo</button>
+              <span class="mini-status" id="vehicleActionMsg">Nenhuma ação executada.</span>
+            </div>
           </div>
         </div>
       </section>
