@@ -457,6 +457,81 @@ textarea{
   font-size:14px;
 }
 
+.vehicle-list{
+  display:grid;
+  gap:10px;
+  max-height:340px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.vehicle-item{
+  border:1px solid var(--border);
+  background:#fbfdff;
+  border-radius:16px;
+  padding:12px 14px;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.vehicle-item:hover{
+  transform:translateY(-1px);
+  border-color:#93c5fd;
+  background:#eff6ff;
+}
+
+.vehicle-item.active{
+  border-color:#2563eb;
+  background:#dbeafe;
+}
+
+.vehicle-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:6px;
+}
+
+.vehicle-name{
+  font-size:15px;
+  font-weight:700;
+}
+
+.vehicle-plate{
+  font-size:13px;
+  color:#1e3a8a;
+  font-weight:700;
+  background:#eef2ff;
+  padding:6px 10px;
+  border-radius:999px;
+}
+
+.vehicle-type{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.selected-vehicle-box{
+  margin-top:14px;
+  border:1px solid var(--border);
+  background:#f8fbff;
+  border-radius:16px;
+  padding:14px;
+}
+
+.selected-title{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+
+.selected-main{
+  font-size:15px;
+  font-weight:700;
+  color:#0f172a;
+}
+
 .toast{
   position:fixed;
   right:18px;
@@ -514,7 +589,8 @@ textarea{
   }
 
   .live-line,
-  .history-top{
+  .history-top,
+  .vehicle-top{
     flex-direction:column;
     align-items:flex-start;
   }
