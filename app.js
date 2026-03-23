@@ -9,6 +9,7 @@ import {
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// CONFIG FIREBASE
 const firebaseConfig = {
   apiKey: "AIzaSyDReYPPhvjjQ4DdLOeQQDg_PrqPCwYaFfU",
   authDomain: "motorista-80298.firebaseapp.com",
@@ -21,38 +22,68 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// ELEMENTOS
 const form = document.getElementById("formStatus");
 const lista = document.getElementById("lista");
 
+// COLEÇÃO
 const col = collection(db, "status");
 
-// SALVAR
+// SALVAR DADOS
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const nome = document.getElementById("nome").value;
-  const status = document.getElementById("status").value;
+  const motorista = document.getElementById("motorista").value;
+  const passageiro = document.getElementById("passageiro").value;
 
-  await addDoc(col, {
-    nome,
-    status,
+  const dados = {
+    motorista,
+    passageiro,
+
+    antesCasa_motorista: document.getElementById("antesCasa_motorista").value,
+    antesCasa_passageiro: document.getElementById("antesCasa_passageiro").value,
+
+    aposAlmoco_motorista: document.getElementById("aposAlmoco_motorista").value,
+    aposAlmoco_passageiro: document.getElementById("aposAlmoco_passageiro").value,
+
+    antesCliente_motorista: document.getElementById("antesCliente_motorista").value,
+    antesCliente_passageiro: document.getElementById("antesCliente_passageiro").value,
+
     criadoEm: serverTimestamp()
-  });
+  };
+
+  await addDoc(col, dados);
 
   form.reset();
 });
 
-// LISTAR EM TEMPO REAL
+// LISTAGEM EM TEMPO REAL
 const q = query(col, orderBy("criadoEm", "desc"));
 
 onSnapshot(q, (snapshot) => {
   lista.innerHTML = "";
 
   snapshot.forEach((doc) => {
-    const data = doc.data();
+    const d = doc.data();
 
     const li = document.createElement("li");
-    li.textContent = `${data.nome} - ${data.status}`;
+
+    li.innerHTML = `
+      <strong>Motorista:</strong> ${d.motorista}<br>
+      <strong>Passageiro:</strong> ${d.passageiro}<br><br>
+
+      <strong>Antes de sair de casa:</strong><br>
+      Motorista - ${d.antesCasa_motorista} para executar as atividades<br>
+      Passageiro - ${d.antesCasa_passageiro} para executar as atividades<br><br>
+
+      <strong>Após almoço:</strong><br>
+      Motorista - ${d.aposAlmoco_motorista} para executar as atividades<br>
+      Passageiro - ${d.aposAlmoco_passageiro} para executar as atividades<br><br>
+
+      <strong>Antes de sair do cliente:</strong><br>
+      Motorista - ${d.antesCliente_motorista} para executar as atividades<br>
+      Passageiro - ${d.antesCliente_passageiro} para executar as atividades
+    `;
 
     lista.appendChild(li);
   });
