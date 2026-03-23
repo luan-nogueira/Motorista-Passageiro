@@ -4,6 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel de Condição</title>
+
+  <meta name="theme-color" content="#0a192f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Painel de Condição" />
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -41,7 +50,7 @@
         <div class="section-head">
           <div>
             <h2 id="formTitle">Controle do dia</h2>
-            <p id="formSubtitle">Preencha os nomes e a condição por período.</p>
+            <p id="formSubtitle">Você pode salvar parcialmente e completar os próximos períodos depois.</p>
           </div>
         </div>
 
@@ -51,13 +60,10 @@
             <input type="date" id="recordDate" required />
           </div>
 
-          <article class="period-card" id="cardAntesCasa">
+          <article class="period-card">
             <div class="period-head">
-              <div>
-                <h3>Antes de sair de casa</h3>
-                <p>Registro inicial do dia</p>
-              </div>
-              <div class="period-unlock-info" id="infoAntesCasa"></div>
+              <h3>Antes de sair de casa</h3>
+              <p>Registro inicial do dia</p>
             </div>
 
             <div class="period-body">
@@ -91,13 +97,10 @@
             </div>
           </article>
 
-          <article class="period-card" id="cardAposAlmoco">
+          <article class="period-card">
             <div class="period-head">
-              <div>
-                <h3>Após almoço</h3>
-                <p>Registro intermediário do dia</p>
-              </div>
-              <div class="period-unlock-info" id="infoAposAlmoco"></div>
+              <h3>Após almoço</h3>
+              <p>Registro intermediário do dia</p>
             </div>
 
             <div class="period-body">
@@ -131,13 +134,10 @@
             </div>
           </article>
 
-          <article class="period-card" id="cardAntesCliente">
+          <article class="period-card">
             <div class="period-head">
-              <div>
-                <h3>Antes de sair do cliente</h3>
-                <p>Registro final do atendimento</p>
-              </div>
-              <div class="period-unlock-info" id="infoAntesCliente"></div>
+              <h3>Antes de sair do cliente</h3>
+              <p>Registro final do atendimento</p>
             </div>
 
             <div class="period-body">
@@ -172,6 +172,14 @@
           </article>
 
           <div class="message-box" id="saveMsg">Sistema pronto para uso.</div>
+
+          <div class="install-box" id="installBox" hidden>
+            <div>
+              <strong>Instalar app</strong>
+              <p>Adicione este sistema à tela inicial do celular.</p>
+            </div>
+            <button class="btn btn-primary" type="button" id="installBtn">Instalar</button>
+          </div>
 
           <div class="actions-bar full">
             <button class="btn btn-light" id="cancelEditBtn" type="button" hidden>Cancelar edição</button>
