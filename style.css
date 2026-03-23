@@ -1,6 +1,4 @@
 :root{
-  --bg:#0f172a;
-  --bg-soft:#111c33;
   --card:#ffffff;
   --card-2:#f8fafc;
   --text:#0f172a;
@@ -18,9 +16,7 @@
   --shadow:0 12px 30px rgba(15,23,42,.10);
 }
 
-*{
-  box-sizing:border-box;
-}
+*{ box-sizing:border-box; }
 
 html,body{
   margin:0;
@@ -30,9 +26,7 @@ html,body{
   color:var(--text);
 }
 
-body{
-  min-height:100vh;
-}
+body{ min-height:100vh; }
 
 .app-shell{
   max-width:1440px;
@@ -249,6 +243,12 @@ textarea{
   border:1px solid #c7d2fe;
 }
 
+.btn-danger-outline{
+  background:#fff;
+  color:#b91c1c;
+  border:1px solid #fecaca;
+}
+
 .summary-grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -363,10 +363,6 @@ textarea{
   padding-top:0;
 }
 
-.live-line strong{
-  font-size:14px;
-}
-
 .obs-box{
   margin-top:10px;
   padding-top:10px;
@@ -374,6 +370,23 @@ textarea{
   color:#475569;
   font-size:14px;
   line-height:1.5;
+}
+
+.team-box{
+  margin-bottom:12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#f8fbff;
+  padding:14px;
+}
+
+.team-box div{
+  margin-bottom:6px;
+  font-size:14px;
+}
+
+.team-box div:last-child{
+  margin-bottom:0;
 }
 
 .badge{
@@ -554,43 +567,23 @@ textarea{
 }
 
 @media (max-width:1180px){
-  .layout{
-    grid-template-columns:1fr;
-  }
-
-  .period-grid{
-    grid-template-columns:1fr;
-  }
+  .layout{ grid-template-columns:1fr; }
+  .period-grid{ grid-template-columns:1fr; }
 }
 
 @media (max-width:720px){
-  .app-shell{
-    padding:12px;
-  }
-
+  .app-shell{ padding:12px; }
   .app-header{
     align-items:flex-start;
     flex-direction:column;
   }
-
-  .brand h1{
-    font-size:24px;
-  }
-
-  .form-grid,
-  .summary-grid{
-    grid-template-columns:1fr;
-  }
-
-  .field-inline,
-  .action-bar{
+  .brand h1{ font-size:24px; }
+  .form-grid, .summary-grid{ grid-template-columns:1fr; }
+  .field-inline, .action-bar{
     flex-direction:column;
     align-items:stretch;
   }
-
-  .live-line,
-  .history-top,
-  .vehicle-top{
+  .live-line, .history-top, .vehicle-top{
     flex-direction:column;
     align-items:flex-start;
   }
