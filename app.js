@@ -6,7 +6,6 @@ import {
   setDoc,
   addDoc,
   getDocs,
-  getDoc,
   deleteDoc,
   query,
   orderBy,
