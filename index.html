@@ -1,32 +1,203 @@
 <!doctype html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="light">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Painel de Status</title>
-  <link rel="stylesheet" href="style.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Condição</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-icon">📋</div>
+        <div>
+          <h1>Painel de Condição</h1>
+          <p>Registro diário da condição para execução das atividades</p>
+        </div>
+      </div>
 
-  <div class="container">
-    <h1>Painel de Status</h1>
+      <div class="header-right">
+        <button class="chip theme-toggle" id="btnThemeToggle" type="button">🌙 Tema escuro</button>
+        <div class="chip online" id="connectionStatus">Conectando...</div>
+        <div class="chip" id="clockText">--:--</div>
+      </div>
+    </header>
 
-    <form id="formStatus">
-      <input type="text" id="nome" placeholder="Seu nome" required />
+    <section class="alert-banner hidden" id="alertBanner"></section>
 
-      <select id="status" required>
-        <option value="">Selecione seu status</option>
-        <option value="Disponível">Disponível</option>
-        <option value="Ocupado">Ocupado</option>
-        <option value="Ausente">Ausente</option>
-      </select>
+    <main class="layout">
+      <section class="panel left-panel">
+        <div class="card">
+          <div class="card-header">
+            <h2>Controle do dia</h2>
+            <p>Escolha a data do registro.</p>
+          </div>
 
-      <button type="submit">Salvar</button>
-    </form>
+          <div class="card-body form-grid">
+            <div class="field full">
+              <label for="recordDate">Data</label>
+              <input type="date" id="recordDate" />
+            </div>
+          </div>
+        </div>
 
-    <h2>Registros</h2>
-    <ul id="lista"></ul>
+        <div class="card">
+          <div class="card-header">
+            <h2>Resumo do dia</h2>
+            <p>Visão geral da condição registrada.</p>
+          </div>
+
+          <div class="card-body">
+            <div class="summary-grid">
+              <div class="summary-box good">
+                <span>Ótimo</span>
+                <strong id="sumGood">0</strong>
+              </div>
+              <div class="summary-box regular">
+                <span>Regular</span>
+                <strong id="sumRegular">0</strong>
+              </div>
+              <div class="summary-box bad">
+                <span>Ruim</span>
+                <strong id="sumBad">0</strong>
+              </div>
+            </div>
+
+            <div class="overall-status good" id="overallStatus">
+              Nenhum registro carregado.
+            </div>
+
+            <div class="meta-lines">
+              <div><strong>Data:</strong> <span id="metaDate">--</span></div>
+              <div><strong>Última atualização:</strong> <span id="lastUpdateText">--</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card history-card">
+          <div class="card-header">
+            <h2>Histórico por dia</h2>
+            <p>Clique em uma data para carregar.</p>
+          </div>
+          <div class="card-body">
+            <div class="history-list" id="historyList"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Ações</h2>
+            <p>Salvar, restaurar padrão ou apagar o registro do dia.</p>
+          </div>
+
+          <div class="card-body action-bar">
+            <button class="btn btn-primary" id="btnSave" type="button">Salvar agora</button>
+            <button class="btn btn-secondary" id="btnReset" type="button">Restaurar padrão</button>
+            <button class="btn btn-danger" id="btnDeleteRecord" type="button">Apagar registro do dia</button>
+            <span class="mini-status" id="saveMsg">Nenhuma ação executada.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel right-panel">
+        <div class="period-grid">
+          <article class="card period-card">
+            <div class="card-header">
+              <h2>Antes de sair de casa</h2>
+              <p>Registro inicial do dia.</p>
+            </div>
+
+            <div class="card-body form-grid">
+              <div class="field">
+                <label for="antesCasa_motorista">Motorista</label>
+                <select id="antesCasa_motorista">
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="antesCasa_passageiro">Passageiro</label>
+                <select id="antesCasa_passageiro">
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+            </div>
+          </article>
+
+          <article class="card period-card">
+            <div class="card-header">
+              <h2>Após almoço</h2>
+              <p>Registro intermediário do dia.</p>
+            </div>
+
+            <div class="card-body form-grid">
+              <div class="field">
+                <label for="aposAlmoco_motorista">Motorista</label>
+                <select id="aposAlmoco_motorista">
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="aposAlmoco_passageiro">Passageiro</label>
+                <select id="aposAlmoco_passageiro">
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+            </div>
+          </article>
+
+          <article class="card period-card">
+            <div class="card-header">
+              <h2>Antes de sair do cliente</h2>
+              <p>Registro final do atendimento.</p>
+            </div>
+
+            <div class="card-body form-grid">
+              <div class="field">
+                <label for="antesCliente_motorista">Motorista</label>
+                <select id="antesCliente_motorista">
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+
+              <div class="field">
+                <label for="antesCliente_passageiro">Passageiro</label>
+                <select id="antesCliente_passageiro">
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Painel ao vivo</h2>
+            <p>Leitura simples do registro atual.</p>
+          </div>
+          <div class="card-body">
+            <div class="live-panel" id="livePanel"></div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
+
+  <div class="toast hidden" id="toast"></div>
 
   <script type="module" src="app.js"></script>
 </body>
