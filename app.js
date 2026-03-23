@@ -4,6 +4,7 @@ import {
   collection,
   doc,
   setDoc,
+  deleteDoc,
   onSnapshot,
   serverTimestamp,
   query,
@@ -88,8 +89,17 @@ const totalRegistrosEl = document.getElementById("totalRegistros");
 const totalAlertasEl = document.getElementById("totalAlertas");
 const ultimaAtualizacaoEl = document.getElementById("ultimaAtualizacao");
 
+const detailsModal = document.getElementById("detailsModal");
+const modalBody = document.getElementById("modalBody");
+const modalTitle = document.getElementById("modalTitle");
+const modalSubtitle = document.getElementById("modalSubtitle");
+const closeModalBtn = document.getElementById("closeModalBtn");
+const modalEditBtn = document.getElementById("modalEditBtn");
+const modalDeleteBtn = document.getElementById("modalDeleteBtn");
+
 let editingDocId = null;
 let currentDocsCache = [];
+let openedDocId = null;
 
 // =========================
 // DATA
@@ -156,6 +166,14 @@ function registroTemAlerta(dados) {
 
 function contarAlertas(registros) {
   return registros.filter((registro) => registroTemAlerta(registro)).length;
+}
+
+function badgeClass(resposta) {
+  return String(resposta).toLowerCase() === "nao" ? "badge-nao" : "badge-sim";
+}
+
+function badgeLabel(resposta) {
+  return String(resposta).toLowerCase() === "nao" ? "Não" : "Sim";
 }
 
 // =========================
@@ -354,7 +372,7 @@ registrarEventosChecklist();
 // =========================
 function montarCard(dados) {
   return `
-    <article class="status-card">
+    <article class="status-card status-card-clickable" data-open-id="${escapeHtml(dados.dataRegistro)}">
       <div class="status-card-mini-content">
         <div>
           <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
@@ -397,6 +415,137 @@ function atualizarResumo(registros) {
     ? formatarTimestamp(primeiro.atualizadoEm || primeiro.criadoEm)
     : "--";
 }
+
+// =========================
+// MODAL
+// =========================
+function montarItemDetalhe(itemConfig, itemData) {
+  const resposta = itemData?.resposta || "--";
+  const obs = itemData?.observacoes || "";
+
+  return `
+    <div class="detail-item">
+      <div class="detail-item-main">
+        <div class="detail-item-title">${escapeHtml(itemConfig.label)}</div>
+        ${obs ? `<div class="detail-item-obs"><strong>Observações:</strong> ${escapeHtml(obs)}</div>` : ""}
+      </div>
+      <span class="status-badge ${badgeClass(resposta)}">${badgeLabel(resposta)}</span>
+    </div>
+  `;
+}
+
+function montarGrupoDetalhe(section, dados) {
+  return `
+    <section class="detail-group">
+      <h4>${escapeHtml(section.titulo)}</h4>
+      ${section.itens.map((item) => montarItemDetalhe(item, dados?.itens?.[item.chave])).join("")}
+    </section>
+  `;
+}
+
+function montarDetalhesModal(dados) {
+  return `
+    <div class="detail-grid">
+      <div class="detail-box">
+        <span>Quem fez</span>
+        <strong>${escapeHtml(dados.responsavel || "--")}</strong>
+      </div>
+      <div class="detail-box">
+        <span>Data</span>
+        <strong>${formatarDataBR(dados.dataRegistro)}</strong>
+      </div>
+      <div class="detail-box">
+        <span>Motorista</span>
+        <strong>${escapeHtml(dados.motorista || "--")}</strong>
+      </div>
+      <div class="detail-box">
+        <span>Veículo / Placa</span>
+        <strong>${escapeHtml(dados.veiculoPlaca || "--")}</strong>
+      </div>
+      <div class="detail-box">
+        <span>KM</span>
+        <strong>${escapeHtml(dados.km || "--")}</strong>
+      </div>
+      <div class="detail-box">
+        <span>Última atualização</span>
+        <strong>${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</strong>
+      </div>
+    </div>
+
+    ${CHECKLIST_SECTIONS.map((section) => montarGrupoDetalhe(section, dados)).join("")}
+
+    ${
+      dados.observacoesGerais
+        ? `
+          <section class="detail-group">
+            <h4>Observações gerais</h4>
+            <div class="detail-item-obs">${escapeHtml(dados.observacoesGerais)}</div>
+          </section>
+        `
+        : ""
+    }
+  `;
+}
+
+function abrirModal(docId) {
+  const dados = currentDocsCache.find((item) => item.dataRegistro === docId);
+  if (!dados) return;
+
+  openedDocId = docId;
+  modalTitle.textContent = dados.responsavel || "Detalhes do checklist";
+  modalSubtitle.textContent = `Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}`;
+  modalBody.innerHTML = montarDetalhesModal(dados);
+  detailsModal.classList.remove("hidden");
+}
+
+function fecharModal() {
+  openedDocId = null;
+  detailsModal.classList.add("hidden");
+}
+
+closeModalBtn.addEventListener("click", fecharModal);
+
+detailsModal.addEventListener("click", (e) => {
+  if (e.target === detailsModal) {
+    fecharModal();
+  }
+});
+
+modalEditBtn.addEventListener("click", () => {
+  if (!openedDocId) return;
+
+  const dados = currentDocsCache.find((item) => item.dataRegistro === openedDocId);
+  if (!dados) return;
+
+  preencherFormulario(dados);
+  editingDocId = openedDocId;
+  atualizarModoFormulario();
+  setMensagem(`Modo edição ativado para ${formatarDataBR(openedDocId)}.`);
+  fecharModal();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+});
+
+modalDeleteBtn.addEventListener("click", async () => {
+  if (!openedDocId) return;
+
+  const confirmar = confirm(`Deseja realmente excluir o checklist do dia ${formatarDataBR(openedDocId)}?`);
+  if (!confirmar) return;
+
+  try {
+    await deleteDoc(doc(db, "status", openedDocId));
+
+    if (editingDocId === openedDocId) {
+      limparFormulario();
+    }
+
+    setMensagem(`Checklist do dia ${formatarDataBR(openedDocId)} excluído com sucesso.`);
+    fecharModal();
+  } catch (error) {
+    console.error("Erro ao excluir checklist:", error);
+    setMensagem(`Erro ao excluir checklist: ${error.message}`, true);
+    alert(`Erro ao excluir checklist: ${error.message}`);
+  }
+});
 
 // =========================
 // SALVAR
@@ -467,12 +616,34 @@ onSnapshot(
     currentDocsCache = snapshot.docs.map((registro) => registro.data());
     renderizarLista(currentDocsCache);
     atualizarResumo(currentDocsCache);
+
+    if (openedDocId) {
+      const aindaExiste = currentDocsCache.find((item) => item.dataRegistro === openedDocId);
+      if (aindaExiste) {
+        abrirModal(openedDocId);
+      } else {
+        fecharModal();
+      }
+    }
   },
   (error) => {
     console.error("Erro ao carregar registros:", error);
     setMensagem(`Erro ao carregar registros: ${error.message}`, true);
   }
 );
+
+// =========================
+// CLICK NA LISTA
+// =========================
+lista.addEventListener("click", (e) => {
+  const card = e.target.closest("[data-open-id]");
+  if (!card) return;
+
+  const docId = card.getAttribute("data-open-id");
+  if (!docId) return;
+
+  abrirModal(docId);
+});
 
 // =========================
 // INICIALIZAÇÃO
