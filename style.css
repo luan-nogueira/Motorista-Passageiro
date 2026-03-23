@@ -348,3 +348,46 @@ input:focus, select:focus, textarea:focus{
     align-items:flex-start;
   }
 }
+.has-bad {
+  border: 2px solid #fca5a5;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+}
+
+.alert-bad {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+  font-weight: 700;
+}
+
+.period-alert {
+  border: 1px solid #fca5a5;
+  background: #fff7f7;
+}
+
+.row-bad {
+  background: rgba(239, 68, 68, 0.04);
+  border-radius: 10px;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
