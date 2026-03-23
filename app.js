@@ -28,10 +28,13 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+const root = document.documentElement;
+
 const connectionStatus = document.getElementById("connectionStatus");
 const clockText = document.getElementById("clockText");
 const alertBanner = document.getElementById("alertBanner");
 const toast = document.getElementById("toast");
+const btnThemeToggle = document.getElementById("btnThemeToggle");
 
 const vehicleSearch = document.getElementById("vehicleSearch");
 const vehicleList = document.getElementById("vehicleList");
@@ -183,6 +186,16 @@ function fillForm(data = defaults) {
   });
 }
 
+function hasMeaningfulData(data = {}) {
+  return Boolean(
+    (data.nomeMotorista || "").trim() ||
+    (data.nomePassageiro || "").trim() ||
+    (data.antesCasa_obs || "").trim() ||
+    (data.aposAlmoco_obs || "").trim() ||
+    (data.antesCliente_obs || "").trim()
+  );
+}
+
 function computeSummary(data) {
   const statuses = [
     data.antesCasa_motorista,
@@ -225,7 +238,7 @@ function recordDocRef(vehicleId, dateIso) {
 
 function setMiniMessage(el, text, isError = false) {
   el.textContent = text;
-  el.style.color = isError ? "#dc2626" : "#475569";
+  el.style.color = isError ? "#dc2626" : "";
 }
 
 function showToast(message, level = "good") {
@@ -251,6 +264,28 @@ function updateClock() {
   }).format(new Date());
 }
 
+function applyTheme(theme) {
+  root.setAttribute("data-theme", theme);
+  localStorage.setItem("themeFrota", theme);
+  btnThemeToggle.textContent = theme === "dark" ? "☀️ Tema claro" : "🌙 Tema escuro";
+}
+
+function initTheme() {
+  const saved = localStorage.getItem("themeFrota");
+  if (saved === "dark" || saved === "light") {
+    applyTheme(saved);
+    return;
+  }
+
+  const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  applyTheme(prefersDark ? "dark" : "light");
+}
+
+function toggleTheme() {
+  const current = root.getAttribute("data-theme") || "light";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
 function renderSummary(summary) {
   countGood.textContent = summary.good;
   countRegular.textContent = summary.regular;
@@ -259,7 +294,22 @@ function renderSummary(summary) {
   overallStatus.textContent = summary.text;
 }
 
-function renderAlertBanner(summary) {
+function renderEmptyState() {
+  renderSummary(computeSummary(defaults));
+  renderAlertBanner(computeSummary(defaults), false);
+  renderLivePanel(defaults);
+  metaDriver.textContent = "--";
+  metaPassenger.textContent = "--";
+  lastUpdateText.textContent = "Sem salvamento ainda";
+}
+
+function renderAlertBanner(summary, show = true) {
+  if (!show) {
+    alertBanner.className = "alert-banner hidden";
+    alertBanner.textContent = "";
+    return;
+  }
+
   alertBanner.classList.remove("hidden", "good", "regular", "bad");
   alertBanner.classList.add(summary.level);
 
@@ -276,8 +326,9 @@ function renderAlertBanner(summary) {
   alertBanner.textContent = `✅ Tudo em condição ótima para ${currentVehicleName || "o veículo"} em ${formatDateBR(currentRecordDate)}.`;
 }
 
-function maybeNotify(summary) {
+function maybeNotify(summary, data) {
   if (!currentVehicleName) return;
+  if (!hasMeaningfulData(data)) return;
 
   const key = `${currentVehicleId}_${currentRecordDate}_${summary.level}`;
   if (lastAlertLevel === key) return;
@@ -603,6 +654,15 @@ async function saveCurrentRecord(showMessage = false) {
   }
 
   const form = getFormData();
+
+  if (!hasMeaningfulData(form)) {
+    if (showMessage) {
+      setMiniMessage(saveMsg, "Preencha motorista, passageiro ou observação antes de salvar.", true);
+      showToast("Registro vazio não será salvo.", "regular");
+    }
+    return;
+  }
+
   const summary = computeSummary(form);
 
   const payload = {
@@ -626,8 +686,11 @@ async function saveCurrentRecord(showMessage = false) {
       },
       { merge: true }
     );
-    if (showMessage) setMiniMessage(saveMsg, "Dados salvos com sucesso.");
-    if (showMessage) showToast(`Registro de ${formatDateBR(currentRecordDate)} salvo com sucesso.`, "good");
+
+    if (showMessage) {
+      setMiniMessage(saveMsg, "Dados salvos com sucesso.");
+      showToast(`Registro de ${formatDateBR(currentRecordDate)} salvo com sucesso.`, "good");
+    }
   } catch (error) {
     console.error(error);
     setMiniMessage(saveMsg, "Erro ao salvar os dados.", true);
@@ -655,12 +718,7 @@ async function deleteCurrentRecord() {
   try {
     await deleteDoc(docRef);
     fillForm(defaults);
-    renderSummary(computeSummary(defaults));
-    renderAlertBanner(computeSummary(defaults));
-    renderLivePanel(defaults);
-    metaDriver.textContent = "--";
-    metaPassenger.textContent = "--";
-    lastUpdateText.textContent = "Sem salvamento ainda";
+    renderEmptyState();
     setMiniMessage(saveMsg, "Registro apagado com sucesso.");
     showToast(`Registro de ${formatDateBR(currentRecordDate)} apagado.`, "good");
   } catch (error) {
@@ -684,12 +742,7 @@ async function deleteRecordByDate(dateIso) {
 
     if (dateIso === currentRecordDate) {
       fillForm(defaults);
-      renderSummary(computeSummary(defaults));
-      renderAlertBanner(computeSummary(defaults));
-      renderLivePanel(defaults);
-      metaDriver.textContent = "--";
-      metaPassenger.textContent = "--";
-      lastUpdateText.textContent = "Sem salvamento ainda";
+      renderEmptyState();
     }
 
     showToast(`Registro de ${formatDateBR(dateIso)} apagado.`, "good");
@@ -702,8 +755,10 @@ async function deleteRecordByDate(dateIso) {
 function scheduleAutoSave() {
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
+    const form = getFormData();
+    if (!hasMeaningfulData(form)) return;
     saveCurrentRecord(false);
-  }, 400);
+  }, 700);
 }
 
 function subscribeCurrentRecord() {
@@ -718,10 +773,13 @@ function subscribeCurrentRecord() {
   unsubscribeRecord = onSnapshot(
     recordDocRef(currentVehicleId, currentRecordDate),
     (snap) => {
-      const data = snap.exists()
-        ? { ...defaults, ...snap.data() }
-        : { ...defaults };
+      if (!snap.exists()) {
+        fillForm(defaults);
+        renderEmptyState();
+        return;
+      }
 
+      const data = { ...defaults, ...snap.data() };
       fillForm(data);
 
       metaDriver.textContent = data.nomeMotorista || "--";
@@ -729,9 +787,9 @@ function subscribeCurrentRecord() {
 
       const summary = data.summary || computeSummary(data);
       renderSummary(summary);
-      renderAlertBanner(summary);
+      renderAlertBanner(summary, true);
       renderLivePanel(data);
-      maybeNotify(summary);
+      maybeNotify(summary, data);
 
       if (data.updatedAt && typeof data.updatedAt.toDate === "function") {
         lastUpdateText.textContent = formatDateTimeBR(data.updatedAt.toDate());
@@ -761,6 +819,7 @@ vehicleSearch.addEventListener("input", applyVehicleFilter);
 btnLastVehicle.addEventListener("click", loadLastVehicle);
 btnDeleteVehicle.addEventListener("click", deleteSelectedVehicle);
 btnAddVehicle.addEventListener("click", addVehicle);
+btnThemeToggle.addEventListener("click", toggleTheme);
 
 recordDate.addEventListener("change", () => {
   currentRecordDate = recordDate.value || todayISO();
@@ -770,15 +829,16 @@ recordDate.addEventListener("change", () => {
 
 fieldIds.forEach((id) => {
   const el = document.getElementById(id);
-  el.addEventListener("change", () => saveCurrentRecord(false));
   el.addEventListener("input", scheduleAutoSave);
+  el.addEventListener("change", scheduleAutoSave);
 });
 
 btnSave.addEventListener("click", () => saveCurrentRecord(true));
 
 btnReset.addEventListener("click", async () => {
   fillForm(defaults);
-  await saveCurrentRecord(true);
+  setMiniMessage(saveMsg, "Campos restaurados. Salve manualmente se quiser gravar.");
+  showToast("Campos restaurados para o padrão.", "regular");
 });
 
 btnDeleteRecord.addEventListener("click", deleteCurrentRecord);
@@ -805,14 +865,12 @@ btnEnableNotifications.addEventListener("click", async () => {
 });
 
 async function init() {
+  initTheme();
   recordDate.value = todayISO();
   currentRecordDate = recordDate.value;
   fillForm(defaults);
-  renderLivePanel(defaults);
-  renderSummary(computeSummary(defaults));
-  renderAlertBanner(computeSummary(defaults));
-  metaDriver.textContent = "--";
-  metaPassenger.textContent = "--";
+  renderEmptyState();
+  metaDate.textContent = formatDateBR(currentRecordDate);
   updateClock();
   setInterval(updateClock, 1000);
 
