@@ -139,7 +139,7 @@
         <div class="card history-card">
           <div class="card-header">
             <h2>Histórico por dia</h2>
-            <p>Clique em um dia para carregar o registro.</p>
+            <p>Clique em um dia para carregar, editar ou apagar.</p>
           </div>
           <div class="card-body">
             <div class="history-list" id="historyList"></div>
@@ -275,12 +275,13 @@
         <div class="card">
           <div class="card-header">
             <h2>Ações</h2>
-            <p>O sistema já salva sozinho, mas você também pode salvar manualmente.</p>
+            <p>Você pode salvar, restaurar ou apagar o registro do dia selecionado.</p>
           </div>
 
           <div class="card-body action-bar">
             <button class="btn btn-primary" id="btnSave">Salvar agora</button>
             <button class="btn btn-secondary" id="btnReset">Restaurar padrão</button>
+            <button class="btn btn-danger" id="btnDeleteRecord">Apagar registro do dia</button>
             <span class="mini-status" id="saveMsg">Nenhuma ação executada.</span>
           </div>
         </div>
