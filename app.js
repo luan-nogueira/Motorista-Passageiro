@@ -71,6 +71,7 @@ const metaPassenger = document.getElementById("metaPassenger");
 const lastUpdateText = document.getElementById("lastUpdateText");
 const historyList = document.getElementById("historyList");
 const livePanel = document.getElementById("livePanel");
+const filledVehiclesList = document.getElementById("filledVehiclesList");
 
 const fieldIds = [
   "nomeMotorista",
@@ -433,6 +434,42 @@ function renderLivePanel(data) {
   `;
 }
 
+function renderFilledVehicles(items) {
+  if (!items.length) {
+    filledVehiclesList.innerHTML = `<div class="filled-empty">Nenhum veículo preencheu nesta data.</div>`;
+    return;
+  }
+
+  filledVehiclesList.innerHTML = items.map((item) => {
+    const active = item.vehicleId === currentVehicleId ? "active" : "";
+    const label = item.vehicleName || "Veículo";
+    const plate = item.vehiclePlate || "";
+    const hora = item.updatedAt && typeof item.updatedAt.toDate === "function"
+      ? new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit" }).format(item.updatedAt.toDate())
+      : "--:--";
+
+    return `
+      <div class="filled-vehicle-item ${active}" data-vehicle-id="${item.vehicleId}">
+        <div class="filled-vehicle-main">
+          <div class="filled-vehicle-name">${escapeHtml(label)}</div>
+          <div class="filled-vehicle-meta">${escapeHtml(plate)} • ${hora}</div>
+        </div>
+        <span class="badge ${item.summary?.level || "good"}">
+          ${item.summary?.level === "bad" ? "Crítico" : item.summary?.level === "regular" ? "Atenção" : "Ótimo"}
+        </span>
+      </div>
+    `;
+  }).join("");
+
+  filledVehiclesList.querySelectorAll("[data-vehicle-id]").forEach((el) => {
+    el.addEventListener("click", () => {
+      const vehicleId = el.dataset.vehicleId;
+      if (!vehicleId) return;
+      selectVehicle(vehicleId);
+    });
+  });
+}
+
 function renderHistory(items) {
   if (!items.length) {
     historyList.innerHTML = `<div class="history-empty">Sem histórico para este veículo ainda.</div>`;
@@ -512,11 +549,38 @@ function subscribeVehicles() {
       connectionStatus.textContent = "Online em tempo real";
       vehiclesCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       applyVehicleFilter();
+      subscribeFilledVehiclesForDate();
     },
     () => {
       connectionStatus.textContent = "Erro de conexão";
     }
   );
+}
+
+function subscribeFilledVehiclesForDate() {
+  const dateIso = recordDate.value || currentRecordDate || todayISO();
+
+  Promise.all(
+    vehiclesCache.map(async (vehicle) => {
+      try {
+        const snap = await getDoc(recordDocRef(vehicle.id, dateIso));
+        if (!snap.exists()) return null;
+
+        const data = snap.data();
+        return {
+          vehicleId: vehicle.id,
+          vehicleName: vehicle.nome || data.vehicleName || "Veículo",
+          vehiclePlate: vehicle.placa || "",
+          updatedAt: data.updatedAt || null,
+          summary: data.summary || null
+        };
+      } catch {
+        return null;
+      }
+    })
+  ).then((items) => {
+    renderFilledVehicles(items.filter(Boolean));
+  });
 }
 
 function applyVehicleFilter() {
@@ -577,6 +641,7 @@ function selectVehicle(vehicleId) {
   applyVehicleFilter();
   subscribeCurrentRecord();
   subscribeHistory();
+  subscribeFilledVehiclesForDate();
 }
 
 function updateSelectedVehicleInfo() {
@@ -616,6 +681,7 @@ function loadRecordDate(dateIso) {
   currentRecordDate = dateIso;
   subscribeCurrentRecord();
   subscribeHistory();
+  subscribeFilledVehiclesForDate();
 }
 
 async function addVehicle() {
@@ -673,6 +739,7 @@ async function deleteSelectedVehicle() {
     currentVehicleId = "";
     currentVehicleName = "";
     showToast("Veículo removido da frota.", "good");
+    subscribeFilledVehiclesForDate();
   } catch (error) {
     console.error(error);
     showToast("Erro ao remover veículo.", "bad");
@@ -695,12 +762,15 @@ async function saveCurrentRecord(showMessage = false) {
     return;
   }
 
+  const selected = vehiclesCache.find((v) => v.id === currentVehicleId);
+
   const payload = {
     ...form,
     nomePassageiros: formatPassengersText(form.nomePassageiros || ""),
     date: currentRecordDate,
     vehicleId: currentVehicleId,
     vehicleName: currentVehicleName,
+    vehiclePlate: selected?.placa || "",
     summary: computeSummary(form),
     updatedAt: serverTimestamp()
   };
@@ -718,6 +788,8 @@ async function saveCurrentRecord(showMessage = false) {
       },
       { merge: true }
     );
+
+    subscribeFilledVehiclesForDate();
 
     if (showMessage) {
       setMiniMessage(saveMsg, "Dados salvos com sucesso.");
@@ -751,6 +823,7 @@ async function deleteCurrentRecord() {
     await deleteDoc(docRef);
     fillForm(defaults);
     renderNoRecordState();
+    subscribeFilledVehiclesForDate();
     setMiniMessage(saveMsg, "Registro apagado com sucesso.");
     showToast(`Registro de ${formatDateBR(currentRecordDate)} apagado.`, "good");
   } catch (error) {
@@ -777,6 +850,7 @@ async function deleteRecordByDate(dateIso) {
       renderNoRecordState();
     }
 
+    subscribeFilledVehiclesForDate();
     showToast(`Registro de ${formatDateBR(dateIso)} apagado.`, "good");
   } catch (error) {
     console.error(error);
@@ -860,6 +934,7 @@ recordDate.addEventListener("change", () => {
   currentRecordDate = recordDate.value || todayISO();
   subscribeCurrentRecord();
   subscribeHistory();
+  subscribeFilledVehiclesForDate();
 });
 
 fieldIds.forEach((id) => {
@@ -884,6 +959,7 @@ btnToday.addEventListener("click", () => {
   currentRecordDate = recordDate.value;
   subscribeCurrentRecord();
   subscribeHistory();
+  subscribeFilledVehiclesForDate();
 });
 
 btnEnableNotifications.addEventListener("click", async () => {
@@ -906,6 +982,7 @@ async function init() {
   currentRecordDate = recordDate.value;
   fillForm(defaults);
   renderNoRecordState();
+  renderFilledVehicles([]);
   metaDate.textContent = formatDateBR(currentRecordDate);
   updateClock();
   setInterval(updateClock, 1000);
