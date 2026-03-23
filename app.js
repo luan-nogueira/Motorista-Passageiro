@@ -15,12 +15,12 @@ import {
 // FIREBASE
 // =========================
 const firebaseConfig = {
-  apiKey: "SUA_API_KEY",
-  authDomain: "SEU_AUTH_DOMAIN",
-  projectId: "SEU_PROJECT_ID",
-  storageBucket: "SEU_STORAGE_BUCKET",
-  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-  appId: "SEU_APP_ID"
+  apiKey: "AIzaSyDReYPPhvjjQ4DdLOeQQDg_PrqPCwYaFfU",
+  authDomain: "motorista-80298.firebaseapp.com",
+  projectId: "motorista-80298",
+  storageBucket: "motorista-80298.firebasestorage.app",
+  messagingSenderId: "988614619560",
+  appId: "1:988614619560:web:f2521ff21aae96aa486d9d"
 };
 
 const app = initializeApp(firebaseConfig);
