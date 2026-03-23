@@ -15,16 +15,56 @@ import {
 // FIREBASE
 // =========================
 const firebaseConfig = {
-  apiKey: "AIzaSyDReYPPhvjjQ4DdLOeQQDg_PrqPCwYaFfU",
-  authDomain: "motorista-80298.firebaseapp.com",
-  projectId: "motorista-80298",
-  storageBucket: "motorista-80298.firebasestorage.app",
-  messagingSenderId: "988614619560",
-  appId: "1:988614619560:web:f2521ff21aae96aa486d9d"
+  apiKey: "SUA_API_KEY",
+  authDomain: "SEU_AUTH_DOMAIN",
+  projectId: "SEU_PROJECT_ID",
+  storageBucket: "SEU_STORAGE_BUCKET",
+  messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+  appId: "SEU_APP_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// =========================
+// CHECKLIST BASEADO NO PDF
+// =========================
+const CHECKLIST_SECTIONS = [
+  {
+    id: "condicoes",
+    titulo: "Condições Físicas e Mentais",
+    itens: [
+      { chave: "descansado", label: "Estou descansado (mínimo 6–8h de sono)" },
+      { chave: "alcool", label: "Não estou sob efeito de álcool" },
+      { chave: "drogas", label: "Não estou sob efeito de drogas ilícitas" },
+      { chave: "medicamentos", label: "Não estou sob efeito de medicamentos que afetem reflexos" },
+      { chave: "condicoesFisicas", label: "Estou em boas condições físicas" },
+      { chave: "emocionalmenteEstavel", label: "Estou emocionalmente estável" },
+      { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)" }
+    ]
+  },
+  {
+    id: "documentacao",
+    titulo: "Documentação Obrigatória",
+    itens: [
+      { chave: "cnhValida", label: "CNH válida e compatível com o veículo" },
+      { chave: "crlvValido", label: "Documento do veículo (CRLV) válido" },
+      { chave: "autorizacaoEmpresa", label: "Autorização da empresa (se aplicável)" }
+    ]
+  },
+  {
+    id: "veiculo",
+    titulo: "Verificação do Veículo (Pré-Uso)",
+    itens: [
+      { chave: "pneus", label: "Pneus em bom estado" },
+      { chave: "estepe", label: "Estepe em boas condições" },
+      { chave: "combustivel", label: "Nível de combustível adequado" },
+      { chave: "oleoMotor", label: "Óleo do motor em nível adequado" },
+      { chave: "freios", label: "Freios funcionando normalmente" },
+      { chave: "faroisSetas", label: "Faróis e setas funcionando" }
+    ]
+  }
+];
 
 // =========================
 // ELEMENTOS
@@ -33,6 +73,12 @@ const form = document.getElementById("formStatus");
 const lista = document.getElementById("lista");
 const saveMsg = document.getElementById("saveMsg");
 const recordDate = document.getElementById("recordDate");
+const responsavel = document.getElementById("responsavel");
+const motorista = document.getElementById("motorista");
+const veiculoPlaca = document.getElementById("veiculoPlaca");
+const km = document.getElementById("km");
+const observacoesGerais = document.getElementById("observacoesGerais");
+
 const formTitle = document.getElementById("formTitle");
 const formSubtitle = document.getElementById("formSubtitle");
 const submitBtn = document.getElementById("submitBtn");
@@ -44,25 +90,6 @@ const ultimaAtualizacaoEl = document.getElementById("ultimaAtualizacao");
 
 let editingDocId = null;
 let currentDocsCache = [];
-let notificacoesAtivas = [];
-
-// =========================
-// CONFIG DE LEMBRETES
-// =========================
-const LEMBRETES = [
-  {
-    chave: "aposAlmoco",
-    titulo: "Após almoço",
-    horario: "13:00",
-    texto: "Está na hora de preencher o período 'Após almoço'."
-  },
-  {
-    chave: "antesCliente",
-    titulo: "Antes de sair do cliente",
-    horario: "16:00",
-    texto: "Está na hora de preencher o período 'Antes de sair do cliente'."
-  }
-];
 
 // =========================
 // DATA
@@ -84,266 +111,182 @@ function setMensagem(msg, erro = false) {
   saveMsg.className = erro ? "message-box error" : "message-box success";
 }
 
-function normalizarStatus(status) {
-  return String(status || "").trim().toLowerCase();
-}
-
-function classeStatus(status) {
-  const valor = normalizarStatus(status);
-  if (valor === "ótimo" || valor === "otimo") return "badge-otimo";
-  if (valor === "regular") return "badge-regular";
-  return "badge-ruim";
-}
-
-function textoStatus(status) {
-  const valor = normalizarStatus(status);
-  if (valor === "ótimo" || valor === "otimo") return "Ótimo";
-  if (valor === "regular") return "Regular";
-  return "Ruim";
-}
-
-function formatarDataBR(dataISO) {
-  if (!dataISO) return "--/--/----";
-  const [ano, mes, dia] = dataISO.split("-");
-  return `${dia}/${mes}/${ano}`;
-}
-
-function formatarTimestamp(timestamp) {
-  if (!timestamp) return "Agora";
-  try {
-    const data = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    if (isNaN(data.getTime())) return "Agora";
-
-    return new Intl.DateTimeFormat("pt-BR", {
-      dateStyle: "short",
-      timeStyle: "short"
-    }).format(data);
-  } catch {
-    return "Agora";
-  }
-}
-
 function escapeHtml(valor) {
   return String(valor ?? "")
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    .replaceAll("'", "&#039;");
 }
 
 function pegarValor(id) {
-  return document.getElementById(id).value.trim();
+  return document.getElementById(id)?.value?.trim() || "";
 }
 
-function formatarPassageiros(texto) {
-  return String(texto || "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean)
-    .join(", ");
+function formatarDataBR(dataISO) {
+  if (!dataISO) return "--";
+  const [ano, mes, dia] = String(dataISO).split("-");
+  if (!ano || !mes || !dia) return dataISO;
+  return `${dia}/${mes}/${ano}`;
 }
 
-function periodoTemRuim(periodo) {
-  const motoristaRuim = normalizarStatus(periodo?.motorista?.status) === "ruim";
-  const passageirosRuim = normalizarStatus(periodo?.passageiros?.status) === "ruim";
-  return motoristaRuim || passageirosRuim;
+function formatarTimestamp(timestamp) {
+  if (!timestamp) return "--";
+
+  const data = typeof timestamp?.toDate === "function"
+    ? timestamp.toDate()
+    : new Date(timestamp);
+
+  if (Number.isNaN(data.getTime())) return "--";
+
+  return data.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  });
 }
 
-function registroTemRuim(dados) {
-  return (
-    periodoTemRuim(dados?.antesCasa) ||
-    periodoTemRuim(dados?.aposAlmoco) ||
-    periodoTemRuim(dados?.antesCliente)
-  );
+function badgeClass(resposta) {
+  return String(resposta).toLowerCase() === "nao" ? "badge-nao" : "badge-sim";
+}
+
+function badgeLabel(resposta) {
+  return String(resposta).toLowerCase() === "nao" ? "Não" : "Sim";
+}
+
+function itemTemAlerta(item) {
+  return String(item?.resposta || "").toLowerCase() === "nao";
+}
+
+function registroTemAlerta(dados) {
+  return Object.values(dados?.itens || {}).some((item) => itemTemAlerta(item));
 }
 
 function contarAlertas(registros) {
-  return registros.filter((item) => registroTemRuim(item)).length;
+  return registros.filter((registro) => registroTemAlerta(registro)).length;
 }
 
-function atualizarResumo(registros) {
-  totalRegistrosEl.textContent = registros.length;
-  totalAlertasEl.textContent = contarAlertas(registros);
-
-  if (!registros.length) {
-    ultimaAtualizacaoEl.textContent = "--";
-    return;
-  }
-
-  const maisRecente = registros[0];
-  ultimaAtualizacaoEl.textContent = formatarTimestamp(
-    maisRecente.atualizadoEm || maisRecente.criadoEm
-  );
-}
-
-function montarLinha(papel, nomeOuLista, status) {
-  const ruim = normalizarStatus(status) === "ruim";
-  const textoExibicao = nomeOuLista ? escapeHtml(nomeOuLista) : "-";
-  const badge = status
-    ? `<span class="status-badge ${classeStatus(status)}">${textoStatus(status)}</span>`
-    : `<span class="status-badge badge-regular">Pendente</span>`;
-
+// =========================
+// MONTAGEM DO FORMULÁRIO
+// =========================
+function criarItemChecklist(item, sectionId) {
   return `
-    <div class="period-row ${ruim ? "row-bad" : ""}">
-      <div class="period-role">
-        <strong>${papel}</strong>
-        <span>${textoExibicao}</span>
-      </div>
-      ${badge}
-    </div>
-  `;
-}
+    <article class="check-item" id="card_${item.chave}">
+      <div class="check-item-head">
+        <div class="check-item-title">${escapeHtml(item.label)}</div>
+        <div class="check-options">
+          <label class="option-pill">
+            <input type="radio" name="${item.chave}_resposta" value="sim" checked />
+            Sim
+          </label>
 
-function montarPeriodo(titulo, periodo) {
-  const ruimNoPeriodo = periodoTemRuim(periodo);
-
-  return `
-    <section class="period-card-view ${ruimNoPeriodo ? "period-alert" : ""}">
-      <h4 class="period-title">${titulo}</h4>
-      ${montarLinha("Motorista", periodo?.motorista?.nome, periodo?.motorista?.status)}
-      ${montarLinha("Passageiros", formatarPassageiros(periodo?.passageiros?.nomes), periodo?.passageiros?.status)}
-    </section>
-  `;
-}
-
-function montarCard(dados) {
-  const alerta = registroTemRuim(dados);
-
-  return `
-    <article class="status-card ${alerta ? "has-bad" : ""}">
-      <div class="status-card-header">
-        <div>
-          <h3 class="status-card-title">Registro do dia ${formatarDataBR(dados.dataRegistro)}</h3>
-          <p class="status-card-subtitle">
-            ${alerta ? "Existe pelo menos um status ruim neste registro." : "Registro dentro do padrão."}
-          </p>
+          <label class="option-pill">
+            <input type="radio" name="${item.chave}_resposta" value="nao" />
+            Não
+          </label>
         </div>
-        <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
       </div>
 
-      ${alerta ? `<div class="alert-bad">⚠ Atenção: há condição ruim informada neste registro.</div>` : ""}
-
-      <div class="period-list">
-        ${montarPeriodo("Antes de sair de casa", dados.antesCasa)}
-        ${montarPeriodo("Após almoço", dados.aposAlmoco)}
-        ${montarPeriodo("Antes de sair do cliente", dados.antesCliente)}
-      </div>
-
-      <div class="card-actions">
-        <button class="btn btn-secondary btn-edit" type="button" data-id="${dados.dataRegistro}">
-          Editar
-        </button>
-        <button class="btn btn-danger btn-delete" type="button" data-id="${dados.dataRegistro}">
-          Excluir
-        </button>
+      <div class="field full">
+        <label for="${item.chave}_obs">Observações</label>
+        <textarea
+          id="${item.chave}_obs"
+          data-section="${sectionId}"
+          placeholder="Descreva algo somente se necessário."
+        ></textarea>
       </div>
     </article>
   `;
 }
 
+function renderizarFormularioChecklist() {
+  CHECKLIST_SECTIONS.forEach((section) => {
+    const alvo = document.getElementById(`grupo-${section.id}`);
+    if (!alvo) return;
+
+    alvo.innerHTML = section.itens
+      .map((item) => criarItemChecklist(item, section.id))
+      .join("");
+  });
+}
+
+renderizarFormularioChecklist();
+
+// =========================
+// COLETA E VALIDAÇÃO
+// =========================
+function obterRespostaItem(chave) {
+  const selecionado = document.querySelector(`input[name="${chave}_resposta"]:checked`);
+  return selecionado ? selecionado.value : "";
+}
+
+function montarItensChecklist() {
+  const itens = {};
+
+  CHECKLIST_SECTIONS.forEach((section) => {
+    section.itens.forEach((item) => {
+      itens[item.chave] = {
+        resposta: obterRespostaItem(item.chave),
+        observacoes: pegarValor(`${item.chave}_obs`)
+      };
+    });
+  });
+
+  return itens;
+}
+
 function montarDadosFormulario() {
   return {
     dataRegistro: recordDate.value,
-    antesCasa: {
-      motorista: {
-        nome: pegarValor("antesCasa_motorista_nome"),
-        status: document.getElementById("antesCasa_motorista_status").value
-      },
-      passageiros: {
-        nomes: pegarValor("antesCasa_passageiros"),
-        status: document.getElementById("antesCasa_passageiros_status").value
-      }
-    },
-    aposAlmoco: {
-      motorista: {
-        nome: pegarValor("aposAlmoco_motorista_nome"),
-        status: document.getElementById("aposAlmoco_motorista_status").value
-      },
-      passageiros: {
-        nomes: pegarValor("aposAlmoco_passageiros"),
-        status: document.getElementById("aposAlmoco_passageiros_status").value
-      }
-    },
-    antesCliente: {
-      motorista: {
-        nome: pegarValor("antesCliente_motorista_nome"),
-        status: document.getElementById("antesCliente_motorista_status").value
-      },
-      passageiros: {
-        nomes: pegarValor("antesCliente_passageiros"),
-        status: document.getElementById("antesCliente_passageiros_status").value
-      }
-    }
+    responsavel: responsavel.value.trim(),
+    motorista: motorista.value.trim(),
+    veiculoPlaca: veiculoPlaca.value.trim(),
+    km: km.value.trim(),
+    observacoesGerais: observacoesGerais.value.trim(),
+    itens: montarItensChecklist()
   };
 }
 
-function periodoPreenchido(periodo) {
-  const motoristaNome = String(periodo?.motorista?.nome || "").trim();
-  const passageirosNomes = String(periodo?.passageiros?.nomes || "").trim();
-  return !!motoristaNome && !!passageirosNomes;
-}
-
-function algumPeriodoPreenchido(dados) {
-  return (
-    periodoPreenchido(dados.antesCasa) ||
-    periodoPreenchido(dados.aposAlmoco) ||
-    periodoPreenchido(dados.antesCliente)
-  );
-}
-
-function validarPeriodoParcial(periodo, titulo) {
-  const motoristaNome = String(periodo?.motorista?.nome || "").trim();
-  const passageirosNomes = String(periodo?.passageiros?.nomes || "").trim();
-
-  const motoristaPreenchido = !!motoristaNome;
-  const passageirosPreenchidos = !!passageirosNomes;
-
-  if (motoristaPreenchido !== passageirosPreenchidos) {
-    return `No período "${titulo}", preencha motorista e passageiros juntos.`;
-  }
-
-  return "";
-}
-
 function validarDados(dados) {
-  if (!dados.dataRegistro) {
-    return "Selecione a data.";
-  }
+  if (!dados.dataRegistro) return "Selecione a data.";
+  if (!dados.responsavel) return "Informe quem fez o checklist.";
+  if (!dados.motorista) return "Informe o motorista.";
+  if (!dados.veiculoPlaca) return "Informe o veículo / placa.";
 
-  if (!algumPeriodoPreenchido(dados)) {
-    return "Preencha pelo menos um período antes de salvar.";
-  }
+  const itens = Object.values(dados.itens || {});
+  if (!itens.length) return "Nenhum item do checklist foi carregado.";
 
-  const erroAntesCasa = validarPeriodoParcial(dados.antesCasa, "Antes de sair de casa");
-  if (erroAntesCasa) return erroAntesCasa;
-
-  const erroAposAlmoco = validarPeriodoParcial(dados.aposAlmoco, "Após almoço");
-  if (erroAposAlmoco) return erroAposAlmoco;
-
-  const erroAntesCliente = validarPeriodoParcial(dados.antesCliente, "Antes de sair do cliente");
-  if (erroAntesCliente) return erroAntesCliente;
+  const semResposta = itens.some((item) => !item.resposta);
+  if (semResposta) return "Responda todos os itens do checklist.";
 
   return "";
 }
 
+// =========================
+// PREENCHER / LIMPAR
+// =========================
 function preencherFormulario(dados) {
-  recordDate.value = dados.dataRegistro || hojeISO();
+  recordDate.value = dados?.dataRegistro || hojeISO();
+  responsavel.value = dados?.responsavel || "";
+  motorista.value = dados?.motorista || "";
+  veiculoPlaca.value = dados?.veiculoPlaca || "";
+  km.value = dados?.km || "";
+  observacoesGerais.value = dados?.observacoesGerais || "";
 
-  document.getElementById("antesCasa_motorista_nome").value = dados?.antesCasa?.motorista?.nome || "";
-  document.getElementById("antesCasa_motorista_status").value = dados?.antesCasa?.motorista?.status || "ótimo";
-  document.getElementById("antesCasa_passageiros").value = dados?.antesCasa?.passageiros?.nomes || "";
-  document.getElementById("antesCasa_passageiros_status").value = dados?.antesCasa?.passageiros?.status || "ótimo";
+  CHECKLIST_SECTIONS.forEach((section) => {
+    section.itens.forEach((item) => {
+      const valor = String(dados?.itens?.[item.chave]?.resposta || "sim").toLowerCase();
+      const radio = document.querySelector(`input[name="${item.chave}_resposta"][value="${valor}"]`);
+      if (radio) radio.checked = true;
 
-  document.getElementById("aposAlmoco_motorista_nome").value = dados?.aposAlmoco?.motorista?.nome || "";
-  document.getElementById("aposAlmoco_motorista_status").value = dados?.aposAlmoco?.motorista?.status || "ótimo";
-  document.getElementById("aposAlmoco_passageiros").value = dados?.aposAlmoco?.passageiros?.nomes || "";
-  document.getElementById("aposAlmoco_passageiros_status").value = dados?.aposAlmoco?.passageiros?.status || "ótimo";
+      const obs = document.getElementById(`${item.chave}_obs`);
+      if (obs) {
+        obs.value = dados?.itens?.[item.chave]?.observacoes || "";
+      }
 
-  document.getElementById("antesCliente_motorista_nome").value = dados?.antesCliente?.motorista?.nome || "";
-  document.getElementById("antesCliente_motorista_status").value = dados?.antesCliente?.motorista?.status || "ótimo";
-  document.getElementById("antesCliente_passageiros").value = dados?.antesCliente?.passageiros?.nomes || "";
-  document.getElementById("antesCliente_passageiros_status").value = dados?.antesCliente?.passageiros?.status || "ótimo";
+      atualizarVisualAlertaItem(item.chave);
+    });
+  });
 }
 
 function limparFormulario() {
@@ -351,18 +294,153 @@ function limparFormulario() {
   recordDate.value = hojeISO();
   editingDocId = null;
   atualizarModoFormulario();
+
+  CHECKLIST_SECTIONS.forEach((section) => {
+    section.itens.forEach((item) => {
+      const radioSim = document.querySelector(`input[name="${item.chave}_resposta"][value="sim"]`);
+      if (radioSim) radioSim.checked = true;
+
+      const obs = document.getElementById(`${item.chave}_obs`);
+      if (obs) obs.value = "";
+
+      atualizarVisualAlertaItem(item.chave);
+    });
+  });
 }
 
 function atualizarModoFormulario() {
   const emEdicao = !!editingDocId;
 
-  submitBtn.textContent = emEdicao ? "Atualizar registro" : "Salvar registro do dia";
+  submitBtn.textContent = emEdicao ? "Atualizar checklist" : "Salvar checklist";
   cancelEditBtn.hidden = !emEdicao;
 
-  formTitle.textContent = emEdicao ? "Editar registro" : "Controle do dia";
+  formTitle.textContent = emEdicao ? "Editar checklist" : "Checklist do dia";
   formSubtitle.textContent = emEdicao
     ? "Altere os dados do registro selecionado e salve novamente."
-    : "Você pode salvar parcialmente e completar os próximos períodos depois.";
+    : "Preencha as condições do motorista e do veículo antes do uso.";
+}
+
+// =========================
+// ALERTA VISUAL NOS ITENS
+// =========================
+function atualizarVisualAlertaItem(chave) {
+  const card = document.getElementById(`card_${chave}`);
+  const resposta = obterRespostaItem(chave);
+
+  if (!card) return;
+
+  card.classList.toggle("alert", String(resposta).toLowerCase() === "nao");
+}
+
+function registrarEventosChecklist() {
+  CHECKLIST_SECTIONS.forEach((section) => {
+    section.itens.forEach((item) => {
+      const radios = document.querySelectorAll(`input[name="${item.chave}_resposta"]`);
+      radios.forEach((radio) => {
+        radio.addEventListener("change", () => atualizarVisualAlertaItem(item.chave));
+      });
+
+      atualizarVisualAlertaItem(item.chave);
+    });
+  });
+}
+
+registrarEventosChecklist();
+
+// =========================
+// RENDERIZAÇÃO LISTA
+// =========================
+function montarItemView(itemConfig, dadosItem) {
+  const resposta = dadosItem?.resposta || "sim";
+  const observacao = dadosItem?.observacoes || "";
+
+  return `
+    <div class="item-view">
+      <div class="item-view-top">
+        <div class="item-view-title">${escapeHtml(itemConfig.label)}</div>
+        <span class="status-badge ${badgeClass(resposta)}">${badgeLabel(resposta)}</span>
+      </div>
+      ${
+        observacao
+          ? `<div class="item-view-obs"><strong>Observações:</strong> ${escapeHtml(observacao)}</div>`
+          : ""
+      }
+    </div>
+  `;
+}
+
+function montarGrupo(section, dados) {
+  const temAlertaNoGrupo = section.itens.some((item) => itemTemAlerta(dados?.itens?.[item.chave]));
+
+  return `
+    <section class="group-card ${temAlertaNoGrupo ? "alert" : ""}">
+      <h4>${escapeHtml(section.titulo)}</h4>
+      ${section.itens.map((item) => montarItemView(item, dados?.itens?.[item.chave])).join("")}
+    </section>
+  `;
+}
+
+function montarCard(dados) {
+  const alerta = registroTemAlerta(dados);
+
+  return `
+    <article class="status-card ${alerta ? "has-bad" : ""}">
+      <div class="status-card-header">
+        <div>
+          <h3 class="status-card-title">Checklist de ${formatarDataBR(dados.dataRegistro)}</h3>
+          <p class="status-card-subtitle">
+            ${alerta ? "Existe pelo menos uma resposta “Não” neste checklist." : "Checklist sem alertas."}
+          </p>
+        </div>
+        <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
+      </div>
+
+      ${alerta ? `<div class="alert-bad">⚠ Atenção: há itens marcados como “Não”.</div>` : ""}
+
+      <div class="meta-grid">
+        <div class="meta-box">
+          <span>Quem fez</span>
+          <strong>${escapeHtml(dados.responsavel || "--")}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Motorista</span>
+          <strong>${escapeHtml(dados.motorista || "--")}</strong>
+        </div>
+        <div class="meta-box">
+          <span>Veículo / Placa</span>
+          <strong>${escapeHtml(dados.veiculoPlaca || "--")}</strong>
+        </div>
+        <div class="meta-box">
+          <span>KM</span>
+          <strong>${escapeHtml(dados.km || "--")}</strong>
+        </div>
+      </div>
+
+      <div class="group-list">
+        ${CHECKLIST_SECTIONS.map((section) => montarGrupo(section, dados)).join("")}
+      </div>
+
+      ${
+        dados.observacoesGerais
+          ? `
+            <div class="group-card" style="margin-top: 12px;">
+              <h4>Observações gerais</h4>
+              <div class="item-view-obs">${escapeHtml(dados.observacoesGerais)}</div>
+            </div>
+          `
+          : ""
+      }
+
+      <div class="card-actions">
+        <button class="btn btn-secondary btn-edit" type="button" data-id="${escapeHtml(dados.dataRegistro)}">
+          Editar
+        </button>
+        <button class="btn btn-danger btn-delete" type="button" data-id="${escapeHtml(dados.dataRegistro)}">
+          Excluir
+        </button>
+      </div>
+    </article>
+  `;
 }
 
 function renderizarLista(registros) {
@@ -371,7 +449,7 @@ function renderizarLista(registros) {
   if (!registros.length) {
     lista.innerHTML = `
       <li class="empty-state">
-        <strong>Nenhum registro encontrado.</strong>
+        <strong>Nenhum checklist encontrado.</strong>
         <span>Os registros salvos aparecerão aqui em tempo real.</span>
       </li>
     `;
@@ -385,121 +463,14 @@ function renderizarLista(registros) {
   });
 }
 
-// =========================
-// NOTIFICAÇÕES / LEMBRETES
-// =========================
-function getRegistroHoje() {
-  const hoje = hojeISO();
-  return currentDocsCache.find((item) => item.dataRegistro === hoje) || null;
-}
+function atualizarResumo(registros) {
+  totalRegistrosEl.textContent = String(registros.length);
+  totalAlertasEl.textContent = String(contarAlertas(registros));
 
-function periodoDoRegistroEstaPreenchido(registro, chavePeriodo) {
-  if (!registro) return false;
-  return periodoPreenchido(registro[chavePeriodo]);
-}
-
-function horarioHojeData(hhmm) {
-  const [hora, minuto] = hhmm.split(":").map(Number);
-  const data = new Date();
-  data.setHours(hora, minuto, 0, 0);
-  return data;
-}
-
-function limparAgendamentosNotificacao() {
-  notificacoesAtivas.forEach((id) => clearTimeout(id));
-  notificacoesAtivas = [];
-}
-
-function salvarMarcacaoNotificacao(chave) {
-  const dia = hojeISO();
-  localStorage.setItem(`notificado_${chave}_${dia}`, "sim");
-}
-
-function jaNotificouHoje(chave) {
-  const dia = hojeISO();
-  return localStorage.getItem(`notificado_${chave}_${dia}`) === "sim";
-}
-
-function solicitarPermissaoNotificacao() {
-  if (!("Notification" in window)) return;
-
-  if (Notification.permission === "default") {
-    Notification.requestPermission().catch(() => {});
-  }
-}
-
-function mostrarNotificacao(titulo, corpo) {
-  setMensagem(corpo);
-
-  if ("Notification" in window && Notification.permission === "granted") {
-    try {
-      new Notification(titulo, {
-        body: corpo,
-        icon: ""
-      });
-    } catch {
-      alert(corpo);
-    }
-  } else {
-    alert(corpo);
-  }
-}
-
-function verificarELembrarAgora() {
-  const registroHoje = getRegistroHoje();
-  const agora = new Date();
-
-  LEMBRETES.forEach((lembrete) => {
-    const horarioLiberado = horarioHojeData(lembrete.horario);
-
-    if (agora < horarioLiberado) return;
-    if (jaNotificouHoje(lembrete.chave)) return;
-    if (periodoDoRegistroEstaPreenchido(registroHoje, lembrete.chave)) {
-      salvarMarcacaoNotificacao(lembrete.chave);
-      return;
-    }
-
-    mostrarNotificacao("Lembrete de preenchimento", lembrete.texto);
-    salvarMarcacaoNotificacao(lembrete.chave);
-  });
-}
-
-function agendarLembretesDoDia() {
-  limparAgendamentosNotificacao();
-
-  const registroHoje = getRegistroHoje();
-  const agora = new Date();
-
-  LEMBRETES.forEach((lembrete) => {
-    if (jaNotificouHoje(lembrete.chave)) return;
-    if (periodoDoRegistroEstaPreenchido(registroHoje, lembrete.chave)) {
-      salvarMarcacaoNotificacao(lembrete.chave);
-      return;
-    }
-
-    const dataLembrete = horarioHojeData(lembrete.horario);
-    const diferenca = dataLembrete.getTime() - agora.getTime();
-
-    if (diferenca <= 0) {
-      return;
-    }
-
-    const timeoutId = setTimeout(() => {
-      const registroAtual = getRegistroHoje();
-
-      if (!periodoDoRegistroEstaPreenchido(registroAtual, lembrete.chave) && !jaNotificouHoje(lembrete.chave)) {
-        mostrarNotificacao("Lembrete de preenchimento", lembrete.texto);
-        salvarMarcacaoNotificacao(lembrete.chave);
-      }
-    }, diferenca);
-
-    notificacoesAtivas.push(timeoutId);
-  });
-}
-
-function atualizarLembretes() {
-  verificarELembrarAgora();
-  agendarLembretesDoDia();
+  const primeiro = registros[0];
+  ultimaAtualizacaoEl.textContent = primeiro
+    ? formatarTimestamp(primeiro.atualizadoEm || primeiro.criadoEm)
+    : "--";
 }
 
 // =========================
@@ -522,7 +493,7 @@ form.addEventListener("submit", async (e) => {
 
   try {
     submitBtn.disabled = true;
-    setMensagem(editingDocId ? "Atualizando registro..." : "Salvando registro...");
+    setMensagem(editingDocId ? "Atualizando checklist..." : "Salvando checklist...");
 
     await setDoc(
       docRef,
@@ -537,12 +508,11 @@ form.addEventListener("submit", async (e) => {
 
     setMensagem(
       editingDocId
-        ? `Registro do dia ${formatarDataBR(docId)} atualizado com sucesso.`
-        : `Registro do dia ${formatarDataBR(docId)} salvo com sucesso.`
+        ? `Checklist do dia ${formatarDataBR(docId)} atualizado com sucesso.`
+        : `Checklist do dia ${formatarDataBR(docId)} salvo com sucesso.`
     );
 
     limparFormulario();
-    atualizarLembretes();
   } catch (error) {
     console.error("Erro ao salvar no Firebase:", error);
     setMensagem("Erro ao salvar no Firebase.", true);
@@ -572,7 +542,6 @@ onSnapshot(
     currentDocsCache = snapshot.docs.map((registro) => registro.data());
     renderizarLista(currentDocsCache);
     atualizarResumo(currentDocsCache);
-    atualizarLembretes();
   },
   (error) => {
     console.error("Erro ao carregar registros:", error);
@@ -581,7 +550,7 @@ onSnapshot(
 );
 
 // =========================
-// AÇÕES EDITAR / EXCLUIR
+// EDITAR / EXCLUIR
 // =========================
 lista.addEventListener("click", async (e) => {
   const editBtn = e.target.closest(".btn-edit");
@@ -606,7 +575,7 @@ lista.addEventListener("click", async (e) => {
 
   if (deleteBtn) {
     const docId = deleteBtn.dataset.id;
-    const confirmar = confirm(`Deseja realmente excluir o registro do dia ${formatarDataBR(docId)}?`);
+    const confirmar = confirm(`Deseja realmente excluir o checklist do dia ${formatarDataBR(docId)}?`);
 
     if (!confirmar) return;
 
@@ -617,12 +586,11 @@ lista.addEventListener("click", async (e) => {
         limparFormulario();
       }
 
-      setMensagem(`Registro do dia ${formatarDataBR(docId)} excluído com sucesso.`);
-      atualizarLembretes();
+      setMensagem(`Checklist do dia ${formatarDataBR(docId)} excluído com sucesso.`);
     } catch (error) {
       console.error("Erro ao excluir:", error);
-      setMensagem("Erro ao excluir registro.", true);
-      alert("Erro ao excluir registro.");
+      setMensagem("Erro ao excluir checklist.", true);
+      alert("Erro ao excluir checklist.");
     }
   }
 });
@@ -631,7 +599,4 @@ lista.addEventListener("click", async (e) => {
 // INICIALIZAÇÃO
 // =========================
 atualizarModoFormulario();
-solicitarPermissaoNotificacao();
-atualizarLembretes();
-setInterval(verificarELembrarAgora, 60000);
 setMensagem("Sistema pronto para uso.");
