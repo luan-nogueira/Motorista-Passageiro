@@ -9,8 +9,6 @@
   --input-bg:#ffffff;
   --primary:#2563eb;
   --primary-dark:#1d4ed8;
-  --success:#16a34a;
-  --warning:#ea580c;
   --danger:#dc2626;
   --surface:#f8fafc;
   --shadow:0 16px 36px rgba(15,23,42,0.08);
@@ -144,7 +142,7 @@ label{
   font-weight:700;
 }
 
-input, select{
+input, select, textarea{
   width:100%;
   border:1px solid var(--border);
   background:var(--input-bg);
@@ -156,11 +154,17 @@ input, select{
   transition:.18s ease;
 }
 
-input::placeholder{
+textarea{
+  min-height:88px;
+  resize:vertical;
+}
+
+input::placeholder,
+textarea::placeholder{
   color:var(--muted);
 }
 
-input:focus, select:focus{
+input:focus, select:focus, textarea:focus{
   border-color:#93c5fd;
   box-shadow:0 0 0 4px rgba(37,99,235,0.10);
 }
