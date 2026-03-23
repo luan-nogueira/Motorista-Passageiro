@@ -31,188 +31,6 @@ const form = document.getElementById("formStatus");
 const lista = document.getElementById("lista");
 
 // =========================
-// ESTILO VISUAL INJETADO
-// =========================
-const visualStyle = document.createElement("style");
-visualStyle.innerHTML = `
-  #lista {
-    list-style: none;
-    padding: 0;
-    margin: 24px 0 0;
-    display: grid;
-    gap: 16px;
-  }
-
-  #lista li {
-    list-style: none;
-  }
-
-  .status-card {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    border-radius: 18px;
-    padding: 18px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
-  }
-
-  .status-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-  }
-
-  .status-card-title {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .status-card-subtitle {
-    margin: 4px 0 0;
-    font-size: 13px;
-    color: #6b7280;
-  }
-
-  .person-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-
-  .person-box {
-    background: #f8fafc;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 12px;
-  }
-
-  .person-label {
-    display: block;
-    font-size: 12px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    color: #6b7280;
-    margin-bottom: 6px;
-  }
-
-  .person-name {
-    font-size: 16px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .period-list {
-    display: grid;
-    gap: 12px;
-  }
-
-  .period-card {
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    padding: 14px;
-  }
-
-  .period-title {
-    margin: 0 0 12px;
-    font-size: 15px;
-    font-weight: 700;
-    color: #111827;
-  }
-
-  .period-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 8px 0;
-    border-top: 1px solid #edf2f7;
-  }
-
-  .period-row:first-of-type {
-    border-top: none;
-    padding-top: 0;
-  }
-
-  .period-role {
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-  }
-
-  .status-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    padding: 8px 12px;
-    font-size: 13px;
-    font-weight: 700;
-    line-height: 1;
-    text-transform: capitalize;
-    white-space: nowrap;
-  }
-
-  .badge-otimo {
-    background: #dcfce7;
-    color: #166534;
-    border: 1px solid #86efac;
-  }
-
-  .badge-regular {
-    background: #fef3c7;
-    color: #92400e;
-    border: 1px solid #fcd34d;
-  }
-
-  .badge-ruim {
-    background: #fee2e2;
-    color: #991b1b;
-    border: 1px solid #fca5a5;
-  }
-
-  .card-date {
-    font-size: 12px;
-    color: #6b7280;
-    background: #f3f4f6;
-    padding: 6px 10px;
-    border-radius: 999px;
-  }
-
-  .empty-state {
-    text-align: center;
-    color: #6b7280;
-    background: #ffffff;
-    border: 1px dashed #d1d5db;
-    border-radius: 18px;
-    padding: 28px 16px;
-  }
-
-  @media (max-width: 640px) {
-    .person-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .period-row {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .status-card-header {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  }
-`;
-document.head.appendChild(visualStyle);
-
-// =========================
 // HELPERS
 // =========================
 function normalizarStatus(status) {
@@ -236,15 +54,21 @@ function textoStatus(status) {
 }
 
 function formatarData(timestamp) {
-  if (!timestamp) return "Agora";
+  if (!timestamp) return "Aguardando horário...";
+
   try {
     const data = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+
+    if (isNaN(data.getTime())) {
+      return "Aguardando horário...";
+    }
+
     return new Intl.DateTimeFormat("pt-BR", {
       dateStyle: "short",
       timeStyle: "short"
     }).format(data);
   } catch {
-    return "Agora";
+    return "Aguardando horário...";
   }
 }
 
@@ -317,6 +141,11 @@ form.addEventListener("submit", async (e) => {
   const motorista = document.getElementById("motorista").value.trim();
   const passageiro = document.getElementById("passageiro").value.trim();
 
+  if (!motorista || !passageiro) {
+    alert("Preencha o nome do motorista e do passageiro.");
+    return;
+  }
+
   const dados = {
     motorista,
     passageiro,
@@ -329,8 +158,13 @@ form.addEventListener("submit", async (e) => {
     criadoEm: serverTimestamp()
   };
 
-  await addDoc(col, dados);
-  form.reset();
+  try {
+    await addDoc(col, dados);
+    form.reset();
+  } catch (error) {
+    console.error("Erro ao salvar no Firebase:", error);
+    alert("Erro ao salvar o registro. Verifique o Firebase.");
+  }
 });
 
 // =========================
