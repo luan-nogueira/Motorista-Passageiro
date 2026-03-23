@@ -59,24 +59,23 @@
 
         <div class="card team-card">
           <div class="card-header">
-            <h2>Equipe em uso</h2>
-            <p>Defina quem está no veículo neste dia.</p>
+            <h2>Equipe</h2>
+            <p>Informe quem está no veículo neste dia.</p>
           </div>
 
           <div class="card-body">
-            <div class="team-highlight">
-              <div class="team-highlight-title">Equipe atual do veículo</div>
+            <div class="team-simple">
+              <div class="field">
+                <label for="nomeMotorista">Motorista</label>
+                <input type="text" id="nomeMotorista" placeholder="Digite o nome do motorista" />
+              </div>
 
-              <div class="team-fields">
-                <div class="field">
-                  <label for="nomeMotorista">🚗 Motorista</label>
-                  <input type="text" id="nomeMotorista" placeholder="Digite o nome do motorista" />
-                </div>
-
-                <div class="field">
-                  <label for="nomePassageiro">👥 Passageiro</label>
-                  <input type="text" id="nomePassageiro" placeholder="Digite o nome do passageiro" />
-                </div>
+              <div class="field">
+                <label for="nomePassageiros">Passageiros</label>
+                <textarea
+                  id="nomePassageiros"
+                  placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro"
+                ></textarea>
               </div>
             </div>
           </div>
@@ -111,27 +110,27 @@
             <div class="summary-grid">
               <div class="summary-box good">
                 <span>Ótimo</span>
-                <strong id="countGood">0</strong>
+                <strong id="countGood">--</strong>
               </div>
               <div class="summary-box regular">
                 <span>Regular</span>
-                <strong id="countRegular">0</strong>
+                <strong id="countRegular">--</strong>
               </div>
               <div class="summary-box bad">
                 <span>Ruim</span>
-                <strong id="countBad">0</strong>
+                <strong id="countBad">--</strong>
               </div>
             </div>
 
-            <div class="overall-status good" id="overallStatus">
-              Aguardando dados...
+            <div class="overall-status" id="overallStatus">
+              Nenhum registro salvo para esta data.
             </div>
 
             <div class="meta-lines">
               <div><strong>Veículo:</strong> <span id="metaVehicle">--</span></div>
               <div><strong>Data:</strong> <span id="metaDate">--</span></div>
               <div><strong>Motorista:</strong> <span id="metaDriver">--</span></div>
-              <div><strong>Passageiro:</strong> <span id="metaPassenger">--</span></div>
+              <div><strong>Passageiros:</strong> <span id="metaPassenger">--</span></div>
               <div><strong>Última atualização:</strong> <span id="lastUpdateText">--</span></div>
             </div>
           </div>
@@ -290,7 +289,7 @@
         <div class="card">
           <div class="card-header">
             <h2>Painel ao vivo</h2>
-            <p>Leitura clara do registro atual.</p>
+            <p>Leitura simples do registro atual.</p>
           </div>
           <div class="card-body">
             <div class="live-panel" id="livePanel"></div>
