@@ -389,6 +389,29 @@ textarea{
   margin-bottom:0;
 }
 
+.team-highlight{
+  display:grid;
+  gap:14px;
+  padding:16px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#eef2ff,#f8fbff);
+  border:1px solid #c7d2fe;
+}
+
+.team-highlight-title{
+  font-size:13px;
+  font-weight:700;
+  color:#4338ca;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+
+.team-fields{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
 .badge{
   display:inline-flex;
   align-items:center;
@@ -573,17 +596,29 @@ textarea{
 
 @media (max-width:720px){
   .app-shell{ padding:12px; }
+
   .app-header{
     align-items:flex-start;
     flex-direction:column;
   }
+
   .brand h1{ font-size:24px; }
-  .form-grid, .summary-grid{ grid-template-columns:1fr; }
-  .field-inline, .action-bar{
+
+  .form-grid,
+  .summary-grid,
+  .team-fields{
+    grid-template-columns:1fr;
+  }
+
+  .field-inline,
+  .action-bar{
     flex-direction:column;
     align-items:stretch;
   }
-  .live-line, .history-top, .vehicle-top{
+
+  .live-line,
+  .history-top,
+  .vehicle-top{
     flex-direction:column;
     align-items:flex-start;
   }
