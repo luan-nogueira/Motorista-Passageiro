@@ -1,306 +1,664 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Painel de Condição • Frota</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <div class="app-shell">
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand-icon">🚗</div>
-        <div>
-          <h1>Painel de Condição</h1>
-          <p>Frota • tempo real • histórico diário</p>
-        </div>
-      </div>
+:root{
+  --card:#ffffff;
+  --card-2:#f8fafc;
+  --text:#0f172a;
+  --muted:#64748b;
+  --border:#e2e8f0;
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --success:#16a34a;
+  --warning:#ea580c;
+  --danger:#dc2626;
+  --success-bg:#ecfdf3;
+  --warning-bg:#fff7ed;
+  --danger-bg:#fef2f2;
+  --radius:20px;
+  --shadow:0 12px 30px rgba(15,23,42,.10);
+}
 
-      <div class="header-right">
-        <div class="chip online" id="connectionStatus">Conectando...</div>
-        <div class="chip" id="clockText">--:--</div>
-      </div>
-    </header>
+*{ box-sizing:border-box; }
 
-    <section class="alert-banner hidden" id="alertBanner"></section>
+html,body{
+  margin:0;
+  padding:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:linear-gradient(180deg,#eaf1ff 0%,#f6f8fc 100%);
+  color:var(--text);
+}
 
-    <main class="layout">
-      <section class="panel left-panel">
-        <div class="card">
-          <div class="card-header">
-            <h2>Seleção do veículo</h2>
-            <p>Busque por nome ou placa e escolha o veículo da frota.</p>
-          </div>
+body{ min-height:100vh; }
 
-          <div class="card-body">
-            <div class="field">
-              <label for="vehicleSearch">Buscar veículo</label>
-              <input type="text" id="vehicleSearch" placeholder="Ex.: Polo, Argo, TEA8F37..." />
-            </div>
+.app-shell{
+  max-width:1440px;
+  margin:0 auto;
+  padding:18px;
+}
 
-            <div class="field">
-              <label>Lista de veículos</label>
-              <div class="vehicle-list" id="vehicleList"></div>
-            </div>
+.app-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-bottom:18px;
+}
 
-            <div class="field field-inline">
-              <button class="btn btn-secondary" id="btnLastVehicle">Último veículo usado</button>
-              <button class="btn btn-danger-outline" id="btnDeleteVehicle">Remover veículo selecionado</button>
-            </div>
+.brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+}
 
-            <div class="selected-vehicle-box">
-              <div class="selected-title">Veículo selecionado</div>
-              <div class="selected-main" id="selectedVehicleText">Nenhum veículo selecionado</div>
-            </div>
-          </div>
-        </div>
+.brand-icon{
+  width:54px;
+  height:54px;
+  border-radius:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;
+  box-shadow:var(--shadow);
+}
 
-        <div class="card team-card">
-          <div class="card-header">
-            <h2>Equipe em uso</h2>
-            <p>Defina quem está no veículo neste dia.</p>
-          </div>
+.brand h1{
+  margin:0;
+  font-size:28px;
+}
 
-          <div class="card-body">
-            <div class="team-highlight">
-              <div class="team-highlight-title">Equipe atual do veículo</div>
+.brand p{
+  margin:4px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
 
-              <div class="team-fields">
-                <div class="field">
-                  <label for="nomeMotorista">🚗 Motorista</label>
-                  <input type="text" id="nomeMotorista" placeholder="Digite o nome do motorista" />
-                </div>
+.header-right{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
 
-                <div class="field">
-                  <label for="nomePassageiro">👥 Passageiro</label>
-                  <input type="text" id="nomePassageiro" placeholder="Digite o nome do passageiro" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+.chip{
+  background:#fff;
+  border:1px solid var(--border);
+  border-radius:999px;
+  padding:10px 14px;
+  font-size:14px;
+  box-shadow:var(--shadow);
+}
 
-        <div class="card">
-          <div class="card-header">
-            <h2>Controle</h2>
-            <p>Escolha o dia do registro atual.</p>
-          </div>
+.chip.online{
+  color:#166534;
+  background:#f0fdf4;
+  border-color:#bbf7d0;
+  font-weight:700;
+}
 
-          <div class="card-body form-grid">
-            <div class="field">
-              <label for="recordDate">Data</label>
-              <input type="date" id="recordDate" />
-            </div>
+.alert-banner{
+  border-radius:18px;
+  padding:16px 18px;
+  margin-bottom:18px;
+  font-weight:700;
+  box-shadow:var(--shadow);
+  border:1px solid transparent;
+}
 
-            <div class="field field-inline">
-              <button class="btn btn-primary" id="btnToday">Hoje</button>
-              <button class="btn btn-secondary" id="btnEnableNotifications">Ativar notificações</button>
-            </div>
-          </div>
-        </div>
+.alert-banner.good{
+  background:var(--success-bg);
+  border-color:#bbf7d0;
+  color:#166534;
+}
 
-        <div class="card summary-card">
-          <div class="card-header">
-            <h2>Resumo do dia</h2>
-            <p>Leitura automática do registro atual.</p>
-          </div>
+.alert-banner.regular{
+  background:var(--warning-bg);
+  border-color:#fed7aa;
+  color:#9a3412;
+}
 
-          <div class="card-body">
-            <div class="summary-grid">
-              <div class="summary-box good">
-                <span>Ótimo</span>
-                <strong id="countGood">0</strong>
-              </div>
-              <div class="summary-box regular">
-                <span>Regular</span>
-                <strong id="countRegular">0</strong>
-              </div>
-              <div class="summary-box bad">
-                <span>Ruim</span>
-                <strong id="countBad">0</strong>
-              </div>
-            </div>
+.alert-banner.bad{
+  background:var(--danger-bg);
+  border-color:#fecaca;
+  color:#991b1b;
+  animation:pulseAlert 1.2s infinite;
+}
 
-            <div class="overall-status good" id="overallStatus">
-              Aguardando dados...
-            </div>
+@keyframes pulseAlert{
+  0%{ transform:scale(1); }
+  50%{ transform:scale(1.01); }
+  100%{ transform:scale(1); }
+}
 
-            <div class="meta-lines">
-              <div><strong>Veículo:</strong> <span id="metaVehicle">--</span></div>
-              <div><strong>Data:</strong> <span id="metaDate">--</span></div>
-              <div><strong>Motorista:</strong> <span id="metaDriver">--</span></div>
-              <div><strong>Passageiro:</strong> <span id="metaPassenger">--</span></div>
-              <div><strong>Última atualização:</strong> <span id="lastUpdateText">--</span></div>
-            </div>
-          </div>
-        </div>
+.layout{
+  display:grid;
+  grid-template-columns:420px 1fr;
+  gap:18px;
+}
 
-        <div class="card history-card">
-          <div class="card-header">
-            <h2>Histórico por dia</h2>
-            <p>Clique em um dia para carregar, editar ou apagar.</p>
-          </div>
-          <div class="card-body">
-            <div class="history-list" id="historyList"></div>
-          </div>
-        </div>
+.panel{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
 
-        <div class="card">
-          <div class="card-header">
-            <h2>Adicionar veículo à frota</h2>
-            <p>Cadastre somente os veículos que você quiser usar.</p>
-          </div>
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
 
-          <div class="card-body form-grid">
-            <div class="field">
-              <label for="vehicleName">Veículo</label>
-              <input type="text" id="vehicleName" placeholder="Ex.: POLO" />
-            </div>
+.card-header{
+  padding:18px 20px 12px;
+  border-bottom:1px solid #edf2f7;
+}
 
-            <div class="field">
-              <label for="vehiclePlate">Placa</label>
-              <input type="text" id="vehiclePlate" placeholder="ABC1D23" maxlength="8" />
-            </div>
+.card-header h2{
+  margin:0 0 4px;
+  font-size:18px;
+}
 
-            <div class="field">
-              <label for="vehicleType">Tipo</label>
-              <input type="text" id="vehicleType" placeholder="Ex.: Leve, Picape..." />
-            </div>
+.card-header p{
+  margin:0;
+  color:var(--muted);
+  font-size:14px;
+}
 
-            <div class="field field-inline">
-              <button class="btn btn-primary" id="btnAddVehicle">Adicionar veículo</button>
-              <span class="mini-status" id="vehicleActionMsg">Nenhuma ação executada.</span>
-            </div>
-          </div>
-        </div>
-      </section>
+.card-body{
+  padding:18px 20px 20px;
+}
 
-      <section class="panel right-panel">
-        <div class="period-grid">
-          <article class="card period-card">
-            <div class="card-header">
-              <h2>Antes de sair de casa</h2>
-              <p>Registro inicial do dia.</p>
-            </div>
-            <div class="card-body form-grid">
-              <div class="field">
-                <label for="antesCasa_motorista">Motorista</label>
-                <select id="antesCasa_motorista">
-                  <option value="ótimo">Ótimo</option>
-                  <option value="regular">Regular</option>
-                  <option value="ruim">Ruim</option>
-                </select>
-              </div>
+.form-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
 
-              <div class="field">
-                <label for="antesCasa_passageiro">Passageiro</label>
-                <select id="antesCasa_passageiro">
-                  <option value="ótimo">Ótimo</option>
-                  <option value="regular">Regular</option>
-                  <option value="ruim">Ruim</option>
-                </select>
-              </div>
+.field{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
 
-              <div class="field full">
-                <label for="antesCasa_obs">Observação</label>
-                <textarea id="antesCasa_obs" placeholder="Observações desse período"></textarea>
-              </div>
-            </div>
-          </article>
+.field.full{
+  grid-column:1 / -1;
+}
 
-          <article class="card period-card">
-            <div class="card-header">
-              <h2>Após almoço</h2>
-              <p>Registro intermediário.</p>
-            </div>
-            <div class="card-body form-grid">
-              <div class="field">
-                <label for="aposAlmoco_motorista">Motorista</label>
-                <select id="aposAlmoco_motorista">
-                  <option value="ótimo">Ótimo</option>
-                  <option value="regular">Regular</option>
-                  <option value="ruim">Ruim</option>
-                </select>
-              </div>
+.field-inline{
+  grid-column:1 / -1;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
 
-              <div class="field">
-                <label for="aposAlmoco_passageiro">Passageiro</label>
-                <select id="aposAlmoco_passageiro">
-                  <option value="ótimo">Ótimo</option>
-                  <option value="regular">Regular</option>
-                  <option value="ruim">Ruim</option>
-                </select>
-              </div>
+label{
+  font-size:14px;
+  font-weight:700;
+}
 
-              <div class="field full">
-                <label for="aposAlmoco_obs">Observação</label>
-                <textarea id="aposAlmoco_obs" placeholder="Observações desse período"></textarea>
-              </div>
-            </div>
-          </article>
+input, select, textarea{
+  width:100%;
+  border:1px solid #dbe2ea;
+  background:#fff;
+  border-radius:14px;
+  padding:12px 14px;
+  font-size:15px;
+  outline:none;
+  transition:.18s ease;
+}
 
-          <article class="card period-card">
-            <div class="card-header">
-              <h2>Antes de sair do cliente</h2>
-              <p>Registro final antes do retorno.</p>
-            </div>
-            <div class="card-body form-grid">
-              <div class="field">
-                <label for="antesCliente_motorista">Motorista</label>
-                <select id="antesCliente_motorista">
-                  <option value="ótimo">Ótimo</option>
-                  <option value="regular">Regular</option>
-                  <option value="ruim">Ruim</option>
-                </select>
-              </div>
+input:focus, select:focus, textarea:focus{
+  border-color:#93c5fd;
+  box-shadow:0 0 0 4px rgba(37,99,235,.10);
+}
 
-              <div class="field">
-                <label for="antesCliente_passageiro">Passageiro</label>
-                <select id="antesCliente_passageiro">
-                  <option value="ótimo">Ótimo</option>
-                  <option value="regular">Regular</option>
-                  <option value="ruim">Ruim</option>
-                </select>
-              </div>
+textarea{
+  min-height:96px;
+  resize:vertical;
+}
 
-              <div class="field full">
-                <label for="antesCliente_obs">Observação</label>
-                <textarea id="antesCliente_obs" placeholder="Observações desse período"></textarea>
-              </div>
-            </div>
-          </article>
-        </div>
+.btn{
+  border:none;
+  border-radius:14px;
+  padding:12px 16px;
+  font-size:14px;
+  font-weight:700;
+  cursor:pointer;
+  transition:.18s ease;
+}
 
-        <div class="card">
-          <div class="card-header">
-            <h2>Ações</h2>
-            <p>Você pode salvar, restaurar ou apagar o registro do dia selecionado.</p>
-          </div>
+.btn:hover{
+  transform:translateY(-1px);
+}
 
-          <div class="card-body action-bar">
-            <button class="btn btn-primary" id="btnSave">Salvar agora</button>
-            <button class="btn btn-secondary" id="btnReset">Restaurar padrão</button>
-            <button class="btn btn-danger" id="btnDeleteRecord">Apagar registro do dia</button>
-            <span class="mini-status" id="saveMsg">Nenhuma ação executada.</span>
-          </div>
-        </div>
+.btn-primary{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;
+}
 
-        <div class="card">
-          <div class="card-header">
-            <h2>Painel ao vivo</h2>
-            <p>Leitura clara do registro atual.</p>
-          </div>
-          <div class="card-body">
-            <div class="live-panel" id="livePanel"></div>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
+.btn-secondary{
+  background:#eef2ff;
+  color:#1e3a8a;
+  border:1px solid #c7d2fe;
+}
 
-  <div class="toast hidden" id="toast"></div>
+.btn-danger-outline{
+  background:#fff;
+  color:#b91c1c;
+  border:1px solid #fecaca;
+}
 
-  <script type="module" src="app.js"></script>
-</body>
-</html>
+.btn-danger{
+  background:linear-gradient(135deg,#ef4444,#b91c1c);
+  color:#fff;
+}
+
+.summary-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.summary-box{
+  border-radius:18px;
+  padding:16px;
+  text-align:center;
+  background:var(--card-2);
+  border:1px solid var(--border);
+}
+
+.summary-box span{
+  display:block;
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+
+.summary-box strong{
+  font-size:32px;
+}
+
+.summary-box.good strong{ color:var(--success); }
+.summary-box.regular strong{ color:var(--warning); }
+.summary-box.bad strong{ color:var(--danger); }
+
+.overall-status{
+  border-radius:16px;
+  padding:14px 16px;
+  font-weight:700;
+  margin-bottom:14px;
+  border:1px solid var(--border);
+  background:#f8fafc;
+}
+
+.overall-status.good{
+  background:var(--success-bg);
+  color:#166534;
+  border-color:#bbf7d0;
+}
+
+.overall-status.regular{
+  background:var(--warning-bg);
+  color:#9a3412;
+  border-color:#fed7aa;
+}
+
+.overall-status.bad{
+  background:var(--danger-bg);
+  color:#991b1b;
+  border-color:#fecaca;
+}
+
+.meta-lines{
+  display:grid;
+  gap:8px;
+  color:#334155;
+  font-size:14px;
+}
+
+.period-grid{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:18px;
+}
+
+.action-bar{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.mini-status{
+  font-size:13px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.live-panel{
+  display:grid;
+  gap:12px;
+}
+
+.live-item{
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:#fbfdff;
+  padding:16px;
+}
+
+.live-item h3{
+  margin:0 0 10px;
+  font-size:16px;
+}
+
+.live-line{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 0;
+  border-top:1px dashed #e2e8f0;
+}
+
+.live-line:first-of-type{
+  border-top:none;
+  padding-top:0;
+}
+
+.obs-box{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px dashed #e2e8f0;
+  color:#475569;
+  font-size:14px;
+  line-height:1.5;
+}
+
+.team-box{
+  margin-bottom:12px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#f8fbff;
+  padding:14px;
+}
+
+.team-box div{
+  margin-bottom:6px;
+  font-size:14px;
+}
+
+.team-box div:last-child{
+  margin-bottom:0;
+}
+
+.team-highlight{
+  display:grid;
+  gap:14px;
+  padding:16px;
+  border-radius:18px;
+  background:linear-gradient(135deg,#eef2ff,#f8fbff);
+  border:1px solid #c7d2fe;
+}
+
+.team-highlight-title{
+  font-size:13px;
+  font-weight:700;
+  color:#4338ca;
+  text-transform:uppercase;
+  letter-spacing:.4px;
+}
+
+.team-fields{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:92px;
+  padding:8px 12px;
+  border-radius:999px;
+  font-size:13px;
+  font-weight:700;
+  border:1px solid transparent;
+}
+
+.badge.good{
+  background:var(--success-bg);
+  color:#166534;
+  border-color:#bbf7d0;
+}
+
+.badge.regular{
+  background:var(--warning-bg);
+  color:#9a3412;
+  border-color:#fed7aa;
+}
+
+.badge.bad{
+  background:var(--danger-bg);
+  color:#991b1b;
+  border-color:#fecaca;
+}
+
+.history-list{
+  display:grid;
+  gap:10px;
+  max-height:540px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.history-item{
+  border:1px solid var(--border);
+  background:#fbfdff;
+  border-radius:16px;
+  padding:14px;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.history-item:hover{
+  transform:translateY(-1px);
+  border-color:#bfdbfe;
+}
+
+.history-item.active{
+  border-color:#60a5fa;
+  background:#eff6ff;
+}
+
+.history-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+  margin-bottom:8px;
+}
+
+.history-date{
+  font-size:14px;
+  font-weight:700;
+}
+
+.history-mini{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.history-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+
+.history-btn{
+  border:none;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:12px;
+  font-weight:700;
+  cursor:pointer;
+}
+
+.history-btn.edit{
+  background:#dbeafe;
+  color:#1d4ed8;
+}
+
+.history-btn.delete{
+  background:#fee2e2;
+  color:#b91c1c;
+}
+
+.history-empty{
+  color:var(--muted);
+  font-size:14px;
+}
+
+.vehicle-list{
+  display:grid;
+  gap:10px;
+  max-height:340px;
+  overflow:auto;
+  padding-right:4px;
+}
+
+.vehicle-item{
+  border:1px solid var(--border);
+  background:#fbfdff;
+  border-radius:16px;
+  padding:12px 14px;
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.vehicle-item:hover{
+  transform:translateY(-1px);
+  border-color:#93c5fd;
+  background:#eff6ff;
+}
+
+.vehicle-item.active{
+  border-color:#2563eb;
+  background:#dbeafe;
+}
+
+.vehicle-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:6px;
+}
+
+.vehicle-name{
+  font-size:15px;
+  font-weight:700;
+}
+
+.vehicle-plate{
+  font-size:13px;
+  color:#1e3a8a;
+  font-weight:700;
+  background:#eef2ff;
+  padding:6px 10px;
+  border-radius:999px;
+}
+
+.vehicle-type{
+  color:var(--muted);
+  font-size:13px;
+}
+
+.selected-vehicle-box{
+  margin-top:14px;
+  border:1px solid var(--border);
+  background:#f8fbff;
+  border-radius:16px;
+  padding:14px;
+}
+
+.selected-title{
+  font-size:12px;
+  color:var(--muted);
+  margin-bottom:6px;
+}
+
+.selected-main{
+  font-size:15px;
+  font-weight:700;
+  color:#0f172a;
+}
+
+.toast{
+  position:fixed;
+  right:18px;
+  bottom:18px;
+  z-index:9999;
+  max-width:340px;
+  padding:14px 16px;
+  border-radius:16px;
+  color:#fff;
+  font-weight:700;
+  box-shadow:0 12px 30px rgba(0,0,0,.18);
+}
+
+.toast.good{ background:var(--success); }
+.toast.regular{ background:var(--warning); }
+.toast.bad{ background:var(--danger); }
+
+.hidden{
+  display:none !important;
+}
+
+@media (max-width:1180px){
+  .layout{ grid-template-columns:1fr; }
+  .period-grid{ grid-template-columns:1fr; }
+}
+
+@media (max-width:720px){
+  .app-shell{ padding:12px; }
+
+  .app-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .brand h1{ font-size:24px; }
+
+  .form-grid,
+  .summary-grid,
+  .team-fields{
+    grid-template-columns:1fr;
+  }
+
+  .field-inline,
+  .action-bar{
+    flex-direction:column;
+    align-items:stretch;
+  }
+
+  .live-line,
+  .history-top,
+  .vehicle-top{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .history-actions{
+    width:100%;
+  }
+
+  .history-btn{
+    width:100%;
+  }
+}
