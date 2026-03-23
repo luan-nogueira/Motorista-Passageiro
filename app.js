@@ -6,6 +6,8 @@ import {
   setDoc,
   addDoc,
   getDocs,
+  getDoc,
+  deleteDoc,
   query,
   orderBy,
   limit,
@@ -35,6 +37,16 @@ const vehicleSearch = document.getElementById("vehicleSearch");
 const vehicleList = document.getElementById("vehicleList");
 const selectedVehicleText = document.getElementById("selectedVehicleText");
 const btnLastVehicle = document.getElementById("btnLastVehicle");
+const btnDeleteVehicle = document.getElementById("btnDeleteVehicle");
+
+const vehicleName = document.getElementById("vehicleName");
+const vehiclePlate = document.getElementById("vehiclePlate");
+const vehicleType = document.getElementById("vehicleType");
+const btnAddVehicle = document.getElementById("btnAddVehicle");
+const vehicleActionMsg = document.getElementById("vehicleActionMsg");
+
+const nomeMotorista = document.getElementById("nomeMotorista");
+const nomePassageiro = document.getElementById("nomePassageiro");
 
 const recordDate = document.getElementById("recordDate");
 const btnEnableNotifications = document.getElementById("btnEnableNotifications");
@@ -50,11 +62,15 @@ const overallStatus = document.getElementById("overallStatus");
 
 const metaVehicle = document.getElementById("metaVehicle");
 const metaDate = document.getElementById("metaDate");
+const metaDriver = document.getElementById("metaDriver");
+const metaPassenger = document.getElementById("metaPassenger");
 const lastUpdateText = document.getElementById("lastUpdateText");
 const historyList = document.getElementById("historyList");
 const livePanel = document.getElementById("livePanel");
 
 const fieldIds = [
+  "nomeMotorista",
+  "nomePassageiro",
   "antesCasa_motorista",
   "antesCasa_passageiro",
   "antesCasa_obs",
@@ -67,6 +83,8 @@ const fieldIds = [
 ];
 
 const defaults = {
+  nomeMotorista: "",
+  nomePassageiro: "",
   antesCasa_motorista: "ótimo",
   antesCasa_passageiro: "ótimo",
   antesCasa_obs: "",
@@ -77,6 +95,22 @@ const defaults = {
   antesCliente_passageiro: "ótimo",
   antesCliente_obs: ""
 };
+
+const FROTA_INICIAL = [
+  { nome: "OROCH", placa: "SFW9D86", tipo: "Picape" },
+  { nome: "OROCH", placa: "SFZ6E09", tipo: "Picape" },
+  { nome: "ÔNIX", placa: "SSV3C08", tipo: "Leve" },
+  { nome: "POLO", placa: "TMA7B03", tipo: "Leve" },
+  { nome: "POLO", placa: "TEA8F37", tipo: "Leve" },
+  { nome: "POLO", placa: "TCW7810", tipo: "Leve" },
+  { nome: "ARGO", placa: "TEY5J53", tipo: "Leve" },
+  { nome: "ARGO", placa: "TEY5J49", tipo: "Leve" },
+  { nome: "ARGO", placa: "TEY5J45", tipo: "Leve" },
+  { nome: "POLO", placa: "TYA1B34", tipo: "Leve" },
+  { nome: "POLO", placa: "TLZ0J58", tipo: "Leve" },
+  { nome: "ONIX", placa: "TXN1E93", tipo: "Leve" },
+  { nome: "HB20", placa: "TEA2F05", tipo: "Leve" }
+];
 
 let vehiclesCache = [];
 let filteredVehicles = [];
@@ -109,6 +143,10 @@ function formatDateTimeBR(dateObj) {
   }).format(dateObj);
 }
 
+function normalizePlate(value = "") {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+}
+
 function escapeHtml(text = "") {
   return String(text)
     .replaceAll("&", "&amp;")
@@ -133,16 +171,14 @@ function statusLabel(value) {
 function getFormData() {
   const data = {};
   fieldIds.forEach((id) => {
-    const el = document.getElementById(id);
-    data[id] = el.value.trim();
+    data[id] = document.getElementById(id).value.trim();
   });
   return data;
 }
 
 function fillForm(data = defaults) {
   fieldIds.forEach((id) => {
-    const el = document.getElementById(id);
-    el.value = data[id] ?? defaults[id] ?? "";
+    document.getElementById(id).value = data[id] ?? defaults[id] ?? "";
   });
 }
 
@@ -218,7 +254,6 @@ function renderSummary(summary) {
   countGood.textContent = summary.good;
   countRegular.textContent = summary.regular;
   countBad.textContent = summary.bad;
-
   overallStatus.className = `overall-status ${summary.level}`;
   overallStatus.textContent = summary.text;
 }
@@ -249,16 +284,10 @@ function maybeNotify(summary) {
 
   if (summary.level === "bad") {
     showToast(`Alerta crítico em ${currentVehicleName} • ${formatDateBR(currentRecordDate)}`, "bad");
-    sendBrowserNotification(
-      "Alerta crítico",
-      `${currentVehicleName} está com condição ruim em ${formatDateBR(currentRecordDate)}.`
-    );
+    sendBrowserNotification("Alerta crítico", `${currentVehicleName} está com condição ruim em ${formatDateBR(currentRecordDate)}.`);
   } else if (summary.level === "regular") {
     showToast(`Atenção em ${currentVehicleName} • ${formatDateBR(currentRecordDate)}`, "regular");
-    sendBrowserNotification(
-      "Atenção",
-      `${currentVehicleName} possui condição regular em ${formatDateBR(currentRecordDate)}.`
-    );
+    sendBrowserNotification("Atenção", `${currentVehicleName} possui condição regular em ${formatDateBR(currentRecordDate)}.`);
   }
 }
 
@@ -274,6 +303,11 @@ function sendBrowserNotification(title, body) {
 
 function renderLivePanel(data) {
   livePanel.innerHTML = `
+    <div class="team-box">
+      <div><strong>Motorista:</strong> ${escapeHtml(data.nomeMotorista || "--")}</div>
+      <div><strong>Passageiro:</strong> ${escapeHtml(data.nomePassageiro || "--")}</div>
+    </div>
+
     <div class="live-item">
       <h3>Antes de sair de casa</h3>
       <div class="live-line">
@@ -284,11 +318,7 @@ function renderLivePanel(data) {
         <strong>Passageiro</strong>
         <span class="badge ${statusClass(data.antesCasa_passageiro)}">${statusLabel(data.antesCasa_passageiro)}</span>
       </div>
-      ${
-        data.antesCasa_obs
-          ? `<div class="obs-box"><strong>Observação:</strong> ${escapeHtml(data.antesCasa_obs)}</div>`
-          : ""
-      }
+      ${data.antesCasa_obs ? `<div class="obs-box"><strong>Observação:</strong> ${escapeHtml(data.antesCasa_obs)}</div>` : ""}
     </div>
 
     <div class="live-item">
@@ -301,11 +331,7 @@ function renderLivePanel(data) {
         <strong>Passageiro</strong>
         <span class="badge ${statusClass(data.aposAlmoco_passageiro)}">${statusLabel(data.aposAlmoco_passageiro)}</span>
       </div>
-      ${
-        data.aposAlmoco_obs
-          ? `<div class="obs-box"><strong>Observação:</strong> ${escapeHtml(data.aposAlmoco_obs)}</div>`
-          : ""
-      }
+      ${data.aposAlmoco_obs ? `<div class="obs-box"><strong>Observação:</strong> ${escapeHtml(data.aposAlmoco_obs)}</div>` : ""}
     </div>
 
     <div class="live-item">
@@ -318,11 +344,7 @@ function renderLivePanel(data) {
         <strong>Passageiro</strong>
         <span class="badge ${statusClass(data.antesCliente_passageiro)}">${statusLabel(data.antesCliente_passageiro)}</span>
       </div>
-      ${
-        data.antesCliente_obs
-          ? `<div class="obs-box"><strong>Observação:</strong> ${escapeHtml(data.antesCliente_obs)}</div>`
-          : ""
-      }
+      ${data.antesCliente_obs ? `<div class="obs-box"><strong>Observação:</strong> ${escapeHtml(data.antesCliente_obs)}</div>` : ""}
     </div>
   `;
 }
@@ -333,27 +355,23 @@ function renderHistory(items) {
     return;
   }
 
-  historyList.innerHTML = items
-    .map((item) => {
-      const active = item.id === currentRecordDate ? "active" : "";
-      const summary = item.summary || computeSummary(item);
-      return `
-        <div class="history-item ${active}" data-date="${item.id}">
-          <div class="history-top">
-            <div class="history-date">${formatDateBR(item.id)}</div>
-            <span class="badge ${summary.level}">${
-              summary.level === "good" ? "Ótimo" : summary.level === "regular" ? "Atenção" : "Crítico"
-            }</span>
-          </div>
-          <div class="history-mini">
-            <span class="badge good">Ótimo: ${summary.good ?? 0}</span>
-            <span class="badge regular">Regular: ${summary.regular ?? 0}</span>
-            <span class="badge bad">Ruim: ${summary.bad ?? 0}</span>
-          </div>
+  historyList.innerHTML = items.map((item) => {
+    const active = item.id === currentRecordDate ? "active" : "";
+    const summary = item.summary || computeSummary(item);
+    return `
+      <div class="history-item ${active}" data-date="${item.id}">
+        <div class="history-top">
+          <div class="history-date">${formatDateBR(item.id)}</div>
+          <span class="badge ${summary.level}">${summary.level === "good" ? "Ótimo" : summary.level === "regular" ? "Atenção" : "Crítico"}</span>
         </div>
-      `;
-    })
-    .join("");
+        <div class="history-mini">
+          <span class="badge good">Ótimo: ${summary.good ?? 0}</span>
+          <span class="badge regular">Regular: ${summary.regular ?? 0}</span>
+          <span class="badge bad">Ruim: ${summary.bad ?? 0}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
 
   historyList.querySelectorAll(".history-item").forEach((item) => {
     item.addEventListener("click", () => {
@@ -368,25 +386,10 @@ function renderHistory(items) {
 async function ensureSeedVehicles() {
   const col = collection(db, "veiculos");
   const snap = await getDocs(col);
+
   if (!snap.empty) return;
 
-  const seed = [
-    { nome: "OROCH", placa: "SFW9D86", tipo: "Picape" },
-    { nome: "OROCH", placa: "SFZ6E09", tipo: "Picape" },
-    { nome: "ÔNIX", placa: "SSV3C08", tipo: "Leve" },
-    { nome: "POLO", placa: "TMA7B03", tipo: "Leve" },
-    { nome: "POLO", placa: "TEA8F37", tipo: "Leve" },
-    { nome: "POLO", placa: "TCW7810", tipo: "Leve" },
-    { nome: "ARGO", placa: "TEY5J53", tipo: "Leve" },
-    { nome: "ARGO", placa: "TEY5J49", tipo: "Leve" },
-    { nome: "ARGO", placa: "TEY5J45", tipo: "Leve" },
-    { nome: "POLO", placa: "TYA1B34", tipo: "Leve" },
-    { nome: "POLO", placa: "TLZ0J58", tipo: "Leve" },
-    { nome: "ONIX", placa: "TXN1E93", tipo: "Leve" },
-    { nome: "HB20", placa: "TEA2F05", tipo: "Leve" }
-  ];
-
-  for (const item of seed) {
+  for (const item of FROTA_INICIAL) {
     await addDoc(col, {
       ...item,
       ativo: true,
@@ -429,10 +432,8 @@ function renderVehicleList(list) {
     return;
   }
 
-  const exists = list.some((v) => v.id === currentVehicleId);
-  if (!exists && !currentVehicleId) {
-    currentVehicleId = list[0].id;
-  } else if (!vehiclesCache.some((v) => v.id === currentVehicleId)) {
+  const stillExists = vehiclesCache.some((v) => v.id === currentVehicleId);
+  if (!currentVehicleId || !stillExists) {
     currentVehicleId = list[0].id;
   }
 
@@ -454,12 +455,6 @@ function renderVehicleList(list) {
       selectVehicle(item.dataset.id);
     });
   });
-
-  const selected = vehiclesCache.find((v) => v.id === currentVehicleId) || list[0];
-  if (selected && !currentVehicleId) {
-    selectVehicle(selected.id);
-    return;
-  }
 
   updateSelectedVehicleInfo();
 }
@@ -509,6 +504,67 @@ function loadLastVehicle() {
 
   selectVehicle(saved);
   showToast("Último veículo carregado com sucesso.", "good");
+}
+
+async function addVehicle() {
+  const nome = vehicleName.value.trim().toUpperCase();
+  const placa = normalizePlate(vehiclePlate.value);
+  const tipo = vehicleType.value.trim();
+
+  if (!nome || !placa) {
+    setMiniMessage(vehicleActionMsg, "Informe veículo e placa.", true);
+    return;
+  }
+
+  const duplicado = vehiclesCache.find((v) => normalizePlate(v.placa || "") === placa);
+  if (duplicado) {
+    setMiniMessage(vehicleActionMsg, "Já existe um veículo com essa placa.", true);
+    return;
+  }
+
+  try {
+    setMiniMessage(vehicleActionMsg, "Adicionando veículo...");
+    await addDoc(collection(db, "veiculos"), {
+      nome,
+      placa,
+      tipo,
+      ativo: true,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+
+    vehicleName.value = "";
+    vehiclePlate.value = "";
+    vehicleType.value = "";
+    setMiniMessage(vehicleActionMsg, "Veículo adicionado com sucesso.");
+  } catch (error) {
+    console.error(error);
+    setMiniMessage(vehicleActionMsg, "Erro ao adicionar veículo.", true);
+  }
+}
+
+async function deleteSelectedVehicle() {
+  if (!currentVehicleId) {
+    showToast("Selecione um veículo primeiro.", "regular");
+    return;
+  }
+
+  const selected = vehiclesCache.find((v) => v.id === currentVehicleId);
+  if (!selected) return;
+
+  const ok = window.confirm(`Deseja remover o veículo ${selected.nome} • ${selected.placa}?`);
+  if (!ok) return;
+
+  try {
+    await deleteDoc(vehicleDocRef(currentVehicleId));
+    localStorage.removeItem("ultimoVeiculoId");
+    currentVehicleId = "";
+    currentVehicleName = "";
+    showToast("Veículo removido da frota.", "good");
+  } catch (error) {
+    console.error(error);
+    showToast("Erro ao remover veículo.", "bad");
+  }
 }
 
 async function saveCurrentRecord(showMessage = false) {
@@ -570,6 +626,9 @@ function subscribeCurrentRecord() {
 
       fillForm(data);
 
+      metaDriver.textContent = data.nomeMotorista || "--";
+      metaPassenger.textContent = data.nomePassageiro || "--";
+
       const summary = data.summary || computeSummary(data);
       renderSummary(summary);
       renderAlertBanner(summary);
@@ -602,6 +661,8 @@ function subscribeHistory() {
 
 vehicleSearch.addEventListener("input", applyVehicleFilter);
 btnLastVehicle.addEventListener("click", loadLastVehicle);
+btnDeleteVehicle.addEventListener("click", deleteSelectedVehicle);
+btnAddVehicle.addEventListener("click", addVehicle);
 
 recordDate.addEventListener("change", () => {
   currentRecordDate = recordDate.value || todayISO();
@@ -650,6 +711,8 @@ async function init() {
   renderLivePanel(defaults);
   renderSummary(computeSummary(defaults));
   renderAlertBanner(computeSummary(defaults));
+  metaDriver.textContent = "--";
+  metaPassenger.textContent = "--";
   updateClock();
   setInterval(updateClock, 1000);
 
