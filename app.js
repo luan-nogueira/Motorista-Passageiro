@@ -29,40 +29,41 @@ const db = getFirestore(app);
 
 // =========================
 // CHECKLIST
+// alertOn = valor que deve gerar alerta
 // =========================
 const CHECKLIST_SECTIONS = [
   {
     id: "condicoes",
     titulo: "Condições Físicas e Mentais",
     itens: [
-      { chave: "descansado", label: "Estou descansado (mínimo 6–8h de sono)" },
-      { chave: "alcool", label: "Não estou sob efeito de álcool" },
-      { chave: "drogas", label: "Não estou sob efeito de drogas ilícitas" },
-      { chave: "medicamentos", label: "Não estou sob efeito de medicamentos que afetem reflexos" },
-      { chave: "condicoesFisicas", label: "Estou em boas condições físicas" },
-      { chave: "emocionalmenteEstavel", label: "Estou emocionalmente estável" },
-      { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)" }
+      { chave: "descansado", label: "Estou descansado (mínimo 6–8h de sono)", alertOn: "nao" },
+      { chave: "alcool", label: "Estou sob efeito de álcool", alertOn: "sim" },
+      { chave: "drogas", label: "Estou sob efeito de drogas ilícitas", alertOn: "sim" },
+      { chave: "medicamentos", label: "Estou sob efeito de medicamentos que afetem reflexos", alertOn: "sim" },
+      { chave: "condicoesFisicas", label: "Estou em boas condições físicas", alertOn: "nao" },
+      { chave: "emocionalmenteEstavel", label: "Estou emocionalmente estável", alertOn: "nao" },
+      { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)", alertOn: "nao" }
     ]
   },
   {
     id: "documentacao",
     titulo: "Documentação Obrigatória",
     itens: [
-      { chave: "cnhValida", label: "CNH válida e compatível com o veículo" },
-      { chave: "crlvValido", label: "Documento do veículo (CRLV) válido" },
-      { chave: "autorizacaoEmpresa", label: "Autorização da empresa (se aplicável)" }
+      { chave: "cnhValida", label: "CNH válida e compatível com o veículo", alertOn: "nao" },
+      { chave: "crlvValido", label: "Documento do veículo (CRLV) válido", alertOn: "nao" },
+      { chave: "autorizacaoEmpresa", label: "Autorização da empresa (se aplicável)", alertOn: "nao" }
     ]
   },
   {
     id: "veiculo",
     titulo: "Verificação do Veículo (Pré-Uso)",
     itens: [
-      { chave: "pneus", label: "Pneus em bom estado" },
-      { chave: "estepe", label: "Estepe em boas condições" },
-      { chave: "combustivel", label: "Nível de combustível adequado" },
-      { chave: "oleoMotor", label: "Óleo do motor em nível adequado" },
-      { chave: "freios", label: "Freios funcionando normalmente" },
-      { chave: "faroisSetas", label: "Faróis e setas funcionando" }
+      { chave: "pneus", label: "Pneus em bom estado", alertOn: "nao" },
+      { chave: "estepe", label: "Estepe em boas condições", alertOn: "nao" },
+      { chave: "combustivel", label: "Nível de combustível adequado", alertOn: "nao" },
+      { chave: "oleoMotor", label: "Óleo do motor em nível adequado", alertOn: "nao" },
+      { chave: "freios", label: "Freios funcionando normalmente", alertOn: "nao" },
+      { chave: "faroisSetas", label: "Faróis e setas funcionando", alertOn: "nao" }
     ]
   }
 ];
@@ -156,30 +157,49 @@ function formatarTimestamp(timestamp) {
   });
 }
 
-function itemTemAlerta(item) {
-  return String(item?.resposta || "").toLowerCase() === "nao";
+function encontrarItemConfig(chave) {
+  for (const section of CHECKLIST_SECTIONS) {
+    const item = section.itens.find((i) => i.chave === chave);
+    if (item) return item;
+  }
+  return null;
+}
+
+function itemTemAlertaPorChave(chave, itemData) {
+  const config = encontrarItemConfig(chave);
+  if (!config) return false;
+
+  const resposta = String(itemData?.resposta || "").toLowerCase();
+  if (!resposta) return false;
+
+  return resposta === String(config.alertOn || "nao").toLowerCase();
 }
 
 function registroTemAlerta(dados) {
-  return Object.values(dados?.itens || {}).some((item) => itemTemAlerta(item));
+  return Object.entries(dados?.itens || {}).some(([chave, item]) =>
+    itemTemAlertaPorChave(chave, item)
+  );
 }
 
 function contarAlertas(registros) {
   return registros.filter((registro) => registroTemAlerta(registro)).length;
 }
 
-function badgeClass(resposta) {
-  return String(resposta).toLowerCase() === "nao" ? "badge-nao" : "badge-sim";
+function badgeClass(chave, resposta) {
+  const itemFake = { resposta };
+  return itemTemAlertaPorChave(chave, itemFake) ? "badge-nao" : "badge-sim";
 }
 
 function badgeLabel(resposta) {
-  return String(resposta).toLowerCase() === "nao" ? "Não" : "Sim";
+  if (String(resposta).toLowerCase() === "sim") return "Sim";
+  if (String(resposta).toLowerCase() === "nao") return "Não";
+  return "--";
 }
 
 // =========================
 // FORMULÁRIO
 // =========================
-function criarItemChecklist(item, sectionId) {
+function criarItemChecklist(item) {
   return `
     <article class="check-item" id="card_${item.chave}">
       <div class="check-item-head">
@@ -201,7 +221,6 @@ function criarItemChecklist(item, sectionId) {
         <label for="${item.chave}_obs">Observações</label>
         <textarea
           id="${item.chave}_obs"
-          data-section="${sectionId}"
           placeholder="Descreva algo somente se necessário."
         ></textarea>
       </div>
@@ -215,7 +234,7 @@ function renderizarFormularioChecklist() {
     if (!alvo) return;
 
     alvo.innerHTML = section.itens
-      .map((item) => criarItemChecklist(item, section.id))
+      .map((item) => criarItemChecklist(item))
       .join("");
   });
 }
@@ -349,7 +368,10 @@ function atualizarVisualAlertaItem(chave) {
     return;
   }
 
-  card.classList.toggle("alert", resposta === "nao");
+  card.classList.toggle(
+    "alert",
+    itemTemAlertaPorChave(chave, { resposta })
+  );
 }
 
 function registrarEventosChecklist() {
@@ -420,7 +442,7 @@ function atualizarResumo(registros) {
 // MODAL
 // =========================
 function montarItemDetalhe(itemConfig, itemData) {
-  const resposta = itemData?.resposta || "--";
+  const resposta = itemData?.resposta || "";
   const obs = itemData?.observacoes || "";
 
   return `
@@ -429,7 +451,7 @@ function montarItemDetalhe(itemConfig, itemData) {
         <div class="detail-item-title">${escapeHtml(itemConfig.label)}</div>
         ${obs ? `<div class="detail-item-obs"><strong>Observações:</strong> ${escapeHtml(obs)}</div>` : ""}
       </div>
-      <span class="status-badge ${badgeClass(resposta)}">${badgeLabel(resposta)}</span>
+      <span class="status-badge ${badgeClass(itemConfig.chave, resposta)}">${badgeLabel(resposta)}</span>
     </div>
   `;
 }
