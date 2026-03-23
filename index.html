@@ -7,161 +7,179 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="app-shell">
-    <header class="app-header">
-      <div class="brand">
-        <div class="brand-icon">📋</div>
-        <div>
+  <div class="mobile-app">
+    <header class="topbar">
+      <div class="topbar-badge">Operacional</div>
+      <div class="brand-wrap">
+        <div class="brand-icon">🛡️</div>
+        <div class="brand-text">
           <h1>Painel de Condição</h1>
-          <p>Registro diário da condição para execução das atividades</p>
+          <p>Controle diário da equipe para execução das atividades</p>
         </div>
       </div>
     </header>
 
-    <main class="layout single-column">
-      <section class="panel">
-        <div class="card">
-          <div class="card-header">
-            <h2>Controle do dia</h2>
-            <p>Preencha os nomes e a condição por período.</p>
-          </div>
+    <main class="app-content">
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span class="summary-label">Registros</span>
+          <strong id="totalRegistros">0</strong>
+        </article>
 
-          <div class="card-body">
-            <form id="formStatus" class="form-grid">
-              <div class="field full">
-                <label for="recordDate">Data</label>
-                <input type="date" id="recordDate" required />
-              </div>
+        <article class="summary-card alert">
+          <span class="summary-label">Com alerta</span>
+          <strong id="totalAlertas">0</strong>
+        </article>
 
-              <article class="card period-card inner-card">
-                <div class="card-header">
-                  <h2>Antes de sair de casa</h2>
-                  <p>Registro inicial do dia.</p>
-                </div>
+        <article class="summary-card wide">
+          <span class="summary-label">Última atualização</span>
+          <strong id="ultimaAtualizacao">--</strong>
+        </article>
+      </section>
 
-                <div class="card-body form-grid">
-                  <div class="field">
-                    <label for="antesCasa_motorista_nome">Motorista</label>
-                    <input type="text" id="antesCasa_motorista_nome" placeholder="Nome do motorista" required />
-                  </div>
-
-                  <div class="field">
-                    <label for="antesCasa_motorista_status">Situação do motorista</label>
-                    <select id="antesCasa_motorista_status" required>
-                      <option value="ótimo">Ótimo para as atividades</option>
-                      <option value="regular">Regular para as atividades</option>
-                      <option value="ruim">Ruim para as atividades</option>
-                    </select>
-                  </div>
-
-                  <div class="field full">
-                    <label for="antesCasa_passageiros">Passageiros</label>
-                    <textarea id="antesCasa_passageiros" placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro" required></textarea>
-                  </div>
-
-                  <div class="field full">
-                    <label for="antesCasa_passageiros_status">Situação dos passageiros</label>
-                    <select id="antesCasa_passageiros_status" required>
-                      <option value="ótimo">Ótimo para as atividades</option>
-                      <option value="regular">Regular para as atividades</option>
-                      <option value="ruim">Ruim para as atividades</option>
-                    </select>
-                  </div>
-                </div>
-              </article>
-
-              <article class="card period-card inner-card">
-                <div class="card-header">
-                  <h2>Após almoço</h2>
-                  <p>Registro intermediário do dia.</p>
-                </div>
-
-                <div class="card-body form-grid">
-                  <div class="field">
-                    <label for="aposAlmoco_motorista_nome">Motorista</label>
-                    <input type="text" id="aposAlmoco_motorista_nome" placeholder="Nome do motorista" required />
-                  </div>
-
-                  <div class="field">
-                    <label for="aposAlmoco_motorista_status">Situação do motorista</label>
-                    <select id="aposAlmoco_motorista_status" required>
-                      <option value="ótimo">Ótimo para as atividades</option>
-                      <option value="regular">Regular para as atividades</option>
-                      <option value="ruim">Ruim para as atividades</option>
-                    </select>
-                  </div>
-
-                  <div class="field full">
-                    <label for="aposAlmoco_passageiros">Passageiros</label>
-                    <textarea id="aposAlmoco_passageiros" placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro" required></textarea>
-                  </div>
-
-                  <div class="field full">
-                    <label for="aposAlmoco_passageiros_status">Situação dos passageiros</label>
-                    <select id="aposAlmoco_passageiros_status" required>
-                      <option value="ótimo">Ótimo para as atividades</option>
-                      <option value="regular">Regular para as atividades</option>
-                      <option value="ruim">Ruim para as atividades</option>
-                    </select>
-                  </div>
-                </div>
-              </article>
-
-              <article class="card period-card inner-card">
-                <div class="card-header">
-                  <h2>Antes de sair do cliente</h2>
-                  <p>Registro final do atendimento.</p>
-                </div>
-
-                <div class="card-body form-grid">
-                  <div class="field">
-                    <label for="antesCliente_motorista_nome">Motorista</label>
-                    <input type="text" id="antesCliente_motorista_nome" placeholder="Nome do motorista" required />
-                  </div>
-
-                  <div class="field">
-                    <label for="antesCliente_motorista_status">Situação do motorista</label>
-                    <select id="antesCliente_motorista_status" required>
-                      <option value="ótimo">Ótimo para as atividades</option>
-                      <option value="regular">Regular para as atividades</option>
-                      <option value="ruim">Ruim para as atividades</option>
-                    </select>
-                  </div>
-
-                  <div class="field full">
-                    <label for="antesCliente_passageiros">Passageiros</label>
-                    <textarea id="antesCliente_passageiros" placeholder="Digite um ou mais passageiros. Ex.: João, Maria, Pedro" required></textarea>
-                  </div>
-
-                  <div class="field full">
-                    <label for="antesCliente_passageiros_status">Situação dos passageiros</label>
-                    <select id="antesCliente_passageiros_status" required>
-                      <option value="ótimo">Ótimo para as atividades</option>
-                      <option value="regular">Regular para as atividades</option>
-                      <option value="ruim">Ruim para as atividades</option>
-                    </select>
-                  </div>
-                </div>
-              </article>
-
-              <div class="field full">
-                <button class="btn btn-primary" type="submit">Salvar registro do dia</button>
-              </div>
-            </form>
-
-            <div class="message-box" id="saveMsg">Nenhuma ação executada.</div>
+      <section class="panel card">
+        <div class="section-head">
+          <div>
+            <h2 id="formTitle">Controle do dia</h2>
+            <p id="formSubtitle">Preencha os nomes e a condição por período.</p>
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-header">
+        <form id="formStatus" class="form-grid">
+          <div class="field full">
+            <label for="recordDate">Data do registro</label>
+            <input type="date" id="recordDate" required />
+          </div>
+
+          <article class="period-card">
+            <div class="period-head">
+              <h3>Antes de sair de casa</h3>
+              <p>Registro inicial do dia</p>
+            </div>
+
+            <div class="period-body">
+              <div class="field">
+                <label for="antesCasa_motorista_nome">Motorista</label>
+                <input type="text" id="antesCasa_motorista_nome" placeholder="Nome do motorista" required />
+              </div>
+
+              <div class="field">
+                <label for="antesCasa_motorista_status">Situação do motorista</label>
+                <select id="antesCasa_motorista_status" required>
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+
+              <div class="field full">
+                <label for="antesCasa_passageiros">Passageiros</label>
+                <textarea id="antesCasa_passageiros" placeholder="Ex.: João, Maria, Pedro" required></textarea>
+              </div>
+
+              <div class="field full">
+                <label for="antesCasa_passageiros_status">Situação dos passageiros</label>
+                <select id="antesCasa_passageiros_status" required>
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+            </div>
+          </article>
+
+          <article class="period-card">
+            <div class="period-head">
+              <h3>Após almoço</h3>
+              <p>Registro intermediário do dia</p>
+            </div>
+
+            <div class="period-body">
+              <div class="field">
+                <label for="aposAlmoco_motorista_nome">Motorista</label>
+                <input type="text" id="aposAlmoco_motorista_nome" placeholder="Nome do motorista" required />
+              </div>
+
+              <div class="field">
+                <label for="aposAlmoco_motorista_status">Situação do motorista</label>
+                <select id="aposAlmoco_motorista_status" required>
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+
+              <div class="field full">
+                <label for="aposAlmoco_passageiros">Passageiros</label>
+                <textarea id="aposAlmoco_passageiros" placeholder="Ex.: João, Maria, Pedro" required></textarea>
+              </div>
+
+              <div class="field full">
+                <label for="aposAlmoco_passageiros_status">Situação dos passageiros</label>
+                <select id="aposAlmoco_passageiros_status" required>
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+            </div>
+          </article>
+
+          <article class="period-card">
+            <div class="period-head">
+              <h3>Antes de sair do cliente</h3>
+              <p>Registro final do atendimento</p>
+            </div>
+
+            <div class="period-body">
+              <div class="field">
+                <label for="antesCliente_motorista_nome">Motorista</label>
+                <input type="text" id="antesCliente_motorista_nome" placeholder="Nome do motorista" required />
+              </div>
+
+              <div class="field">
+                <label for="antesCliente_motorista_status">Situação do motorista</label>
+                <select id="antesCliente_motorista_status" required>
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+
+              <div class="field full">
+                <label for="antesCliente_passageiros">Passageiros</label>
+                <textarea id="antesCliente_passageiros" placeholder="Ex.: João, Maria, Pedro" required></textarea>
+              </div>
+
+              <div class="field full">
+                <label for="antesCliente_passageiros_status">Situação dos passageiros</label>
+                <select id="antesCliente_passageiros_status" required>
+                  <option value="ótimo">Ótimo para as atividades</option>
+                  <option value="regular">Regular para as atividades</option>
+                  <option value="ruim">Ruim para as atividades</option>
+                </select>
+              </div>
+            </div>
+          </article>
+
+          <div class="message-box" id="saveMsg">Sistema pronto para uso.</div>
+
+          <div class="actions-bar full">
+            <button class="btn btn-light" id="cancelEditBtn" type="button" hidden>Cancelar edição</button>
+            <button class="btn btn-primary" id="submitBtn" type="submit">Salvar registro do dia</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="panel card">
+        <div class="section-head">
+          <div>
             <h2>Últimos registros</h2>
-            <p>Lista salva em tempo real.</p>
-          </div>
-          <div class="card-body">
-            <ul class="records-list" id="lista"></ul>
+            <p>Lista atualizada em tempo real</p>
           </div>
         </div>
+
+        <ul class="records-list" id="lista"></ul>
       </section>
     </main>
   </div>
