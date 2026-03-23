@@ -50,7 +50,7 @@ body{
 }
 
 .topbar{
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 20;
   margin-bottom: 16px;
