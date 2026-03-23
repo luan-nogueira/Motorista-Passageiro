@@ -176,7 +176,7 @@ function criarItemChecklist(item, sectionId) {
         <div class="check-item-title">${escapeHtml(item.label)}</div>
         <div class="check-options">
           <label class="option-pill">
-            <input type="radio" name="${item.chave}_resposta" value="sim" checked />
+            <input type="radio" name="${item.chave}_resposta" value="sim" />
             Sim
           </label>
 
@@ -253,11 +253,11 @@ function validarDados(dados) {
   if (!dados.motorista) return "Informe o motorista.";
   if (!dados.veiculoPlaca) return "Informe o veículo / placa.";
 
-  const itens = Object.values(dados.itens || {});
+  const itens = Object.values(dados.itens || []);
   if (!itens.length) return "Nenhum item do checklist foi carregado.";
 
   const semResposta = itens.some((item) => !item.resposta);
-  if (semResposta) return "Responda todos os itens do checklist.";
+  if (semResposta) return "Responda TODOS os itens do checklist.";
 
   return "";
 }
@@ -297,8 +297,8 @@ function limparFormulario() {
 
   CHECKLIST_SECTIONS.forEach((section) => {
     section.itens.forEach((item) => {
-      const radioSim = document.querySelector(`input[name="${item.chave}_resposta"][value="sim"]`);
-      if (radioSim) radioSim.checked = true;
+      const radios = document.querySelectorAll(`input[name="${item.chave}_resposta"]`);
+      radios.forEach(r => r.checked = false);
 
       const obs = document.getElementById(`${item.chave}_obs`);
       if (obs) obs.value = "";
@@ -381,55 +381,21 @@ function montarGrupo(section, dados) {
 }
 
 function montarCard(dados) {
-  const alerta = registroTemAlerta(dados);
-
   return `
-    <article class="status-card ${alerta ? "has-bad" : ""}">
-      <div class="status-card-header">
+    <article class="status-card status-card-mini">
+      <div class="status-card-mini-content">
         <div>
-          <h3 class="status-card-title">Checklist de ${formatarDataBR(dados.dataRegistro)}</h3>
+          <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
           <p class="status-card-subtitle">
-            ${alerta ? "Existe pelo menos uma resposta “Não” neste checklist." : "Checklist sem alertas."}
+            Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}
           </p>
         </div>
+
         <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
       </div>
-
-      ${alerta ? `<div class="alert-bad">⚠ Atenção: há itens marcados como “Não”.</div>` : ""}
-
-      <div class="meta-grid">
-        <div class="meta-box">
-          <span>Quem fez</span>
-          <strong>${escapeHtml(dados.responsavel || "--")}</strong>
-        </div>
-        <div class="meta-box">
-          <span>Motorista</span>
-          <strong>${escapeHtml(dados.motorista || "--")}</strong>
-        </div>
-        <div class="meta-box">
-          <span>Veículo / Placa</span>
-          <strong>${escapeHtml(dados.veiculoPlaca || "--")}</strong>
-        </div>
-        <div class="meta-box">
-          <span>KM</span>
-          <strong>${escapeHtml(dados.km || "--")}</strong>
-        </div>
-      </div>
-
-      <div class="group-list">
-        ${CHECKLIST_SECTIONS.map((section) => montarGrupo(section, dados)).join("")}
-      </div>
-
-      ${
-        dados.observacoesGerais
-          ? `
-            <div class="group-card" style="margin-top: 12px;">
-              <h4>Observações gerais</h4>
-              <div class="item-view-obs">${escapeHtml(dados.observacoesGerais)}</div>
-            </div>
-          `
-          : ""
-      }
+    </article>
+  `;
+}
 
       <div class="card-actions">
         <button class="btn btn-secondary btn-edit" type="button" data-id="${escapeHtml(dados.dataRegistro)}">
