@@ -26,23 +26,17 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* =========================
-   ELEMENTOS
-========================= */
 const connectionStatus = document.getElementById("connectionStatus");
 const clockText = document.getElementById("clockText");
 const alertBanner = document.getElementById("alertBanner");
 const toast = document.getElementById("toast");
 
-const vehicleSelect = document.getElementById("vehicleSelect");
+const vehicleSearch = document.getElementById("vehicleSearch");
+const vehicleList = document.getElementById("vehicleList");
+const selectedVehicleText = document.getElementById("selectedVehicleText");
+const btnLastVehicle = document.getElementById("btnLastVehicle");
+
 const recordDate = document.getElementById("recordDate");
-
-const vehicleName = document.getElementById("vehicleName");
-const vehiclePlate = document.getElementById("vehiclePlate");
-const vehicleType = document.getElementById("vehicleType");
-const vehicleActionMsg = document.getElementById("vehicleActionMsg");
-
-const btnAddVehicle = document.getElementById("btnAddVehicle");
 const btnEnableNotifications = document.getElementById("btnEnableNotifications");
 const btnToday = document.getElementById("btnToday");
 const btnSave = document.getElementById("btnSave");
@@ -60,9 +54,6 @@ const lastUpdateText = document.getElementById("lastUpdateText");
 const historyList = document.getElementById("historyList");
 const livePanel = document.getElementById("livePanel");
 
-/* =========================
-   CAMPOS DO FORM
-========================= */
 const fieldIds = [
   "antesCasa_motorista",
   "antesCasa_passageiro",
@@ -87,10 +78,8 @@ const defaults = {
   antesCliente_obs: ""
 };
 
-/* =========================
-   ESTADO
-========================= */
 let vehiclesCache = [];
+let filteredVehicles = [];
 let currentVehicleId = "";
 let currentVehicleName = "";
 let currentRecordDate = todayISO();
@@ -100,9 +89,6 @@ let debounceTimer = null;
 let lastAlertLevel = "";
 let lastToastKey = "";
 
-/* =========================
-   HELPERS
-========================= */
 function todayISO() {
   const now = new Date();
   const offset = now.getTimezoneOffset();
@@ -121,13 +107,6 @@ function formatDateTimeBR(dateObj) {
     dateStyle: "short",
     timeStyle: "medium"
   }).format(dateObj);
-}
-
-function normalizePlate(value) {
-  return value
-    .toUpperCase()
-    .replace(/[^A-Z0-9]/g, "")
-    .slice(0, 7);
 }
 
 function escapeHtml(text = "") {
@@ -363,8 +342,8 @@ function renderHistory(items) {
           <div class="history-top">
             <div class="history-date">${formatDateBR(item.id)}</div>
             <span class="badge ${summary.level}">${
-        summary.level === "good" ? "Ótimo" : summary.level === "regular" ? "Atenção" : "Crítico"
-      }</span>
+              summary.level === "good" ? "Ótimo" : summary.level === "regular" ? "Atenção" : "Crítico"
+            }</span>
           </div>
           <div class="history-mini">
             <span class="badge good">Ótimo: ${summary.good ?? 0}</span>
@@ -386,22 +365,31 @@ function renderHistory(items) {
   });
 }
 
-/* =========================
-   VEÍCULOS
-========================= */
 async function ensureSeedVehicles() {
   const col = collection(db, "veiculos");
   const snap = await getDocs(col);
   if (!snap.empty) return;
 
   const seed = [
-    { nome: "Polo 01", placa: "AAA1A11", tipo: "Leve", ativo: true },
-    { nome: "Onix 02", placa: "BBB2B22", tipo: "Leve", ativo: true }
+    { nome: "OROCH", placa: "SFW9D86", tipo: "Picape" },
+    { nome: "OROCH", placa: "SFZ6E09", tipo: "Picape" },
+    { nome: "ÔNIX", placa: "SSV3C08", tipo: "Leve" },
+    { nome: "POLO", placa: "TMA7B03", tipo: "Leve" },
+    { nome: "POLO", placa: "TEA8F37", tipo: "Leve" },
+    { nome: "POLO", placa: "TCW7810", tipo: "Leve" },
+    { nome: "ARGO", placa: "TEY5J53", tipo: "Leve" },
+    { nome: "ARGO", placa: "TEY5J49", tipo: "Leve" },
+    { nome: "ARGO", placa: "TEY5J45", tipo: "Leve" },
+    { nome: "POLO", placa: "TYA1B34", tipo: "Leve" },
+    { nome: "POLO", placa: "TLZ0J58", tipo: "Leve" },
+    { nome: "ONIX", placa: "TXN1E93", tipo: "Leve" },
+    { nome: "HB20", placa: "TEA2F05", tipo: "Leve" }
   ];
 
   for (const item of seed) {
     await addDoc(col, {
       ...item,
+      ativo: true,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -415,7 +403,7 @@ function subscribeVehicles() {
     (snap) => {
       connectionStatus.textContent = "Online em tempo real";
       vehiclesCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      renderVehicleSelect();
+      applyVehicleFilter();
     },
     () => {
       connectionStatus.textContent = "Erro de conexão";
@@ -423,73 +411,106 @@ function subscribeVehicles() {
   );
 }
 
-function renderVehicleSelect() {
-  if (!vehiclesCache.length) {
-    vehicleSelect.innerHTML = `<option value="">Nenhum veículo cadastrado</option>`;
-    currentVehicleId = "";
-    currentVehicleName = "";
+function applyVehicleFilter() {
+  const term = vehicleSearch.value.trim().toLowerCase();
+
+  filteredVehicles = vehiclesCache.filter((v) => {
+    const text = `${v.nome || ""} ${v.placa || ""} ${v.tipo || ""}`.toLowerCase();
+    return text.includes(term);
+  });
+
+  renderVehicleList(filteredVehicles);
+}
+
+function renderVehicleList(list) {
+  if (!list.length) {
+    vehicleList.innerHTML = `<div class="history-empty">Nenhum veículo encontrado.</div>`;
+    selectedVehicleText.textContent = "Nenhum veículo encontrado";
     return;
   }
 
-  vehicleSelect.innerHTML = vehiclesCache
-    .map((v) => {
-      const label = `${v.nome} • ${v.placa || "sem placa"}${v.tipo ? ` • ${v.tipo}` : ""}`;
-      return `<option value="${v.id}">${escapeHtml(label)}</option>`;
-    })
-    .join("");
-
-  const exists = vehiclesCache.some((v) => v.id === currentVehicleId);
-  if (!exists) {
-    currentVehicleId = vehiclesCache[0].id;
+  const exists = list.some((v) => v.id === currentVehicleId);
+  if (!exists && !currentVehicleId) {
+    currentVehicleId = list[0].id;
+  } else if (!vehiclesCache.some((v) => v.id === currentVehicleId)) {
+    currentVehicleId = list[0].id;
   }
 
-  vehicleSelect.value = currentVehicleId;
+  vehicleList.innerHTML = list.map((v) => {
+    const active = v.id === currentVehicleId ? "active" : "";
+    return `
+      <div class="vehicle-item ${active}" data-id="${v.id}">
+        <div class="vehicle-top">
+          <div class="vehicle-name">${escapeHtml(v.nome || "Sem nome")}</div>
+          <div class="vehicle-plate">${escapeHtml(v.placa || "SEM PLACA")}</div>
+        </div>
+        <div class="vehicle-type">${escapeHtml(v.tipo || "Sem tipo")}</div>
+      </div>
+    `;
+  }).join("");
+
+  vehicleList.querySelectorAll(".vehicle-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      selectVehicle(item.dataset.id);
+    });
+  });
+
+  const selected = vehiclesCache.find((v) => v.id === currentVehicleId) || list[0];
+  if (selected && !currentVehicleId) {
+    selectVehicle(selected.id);
+    return;
+  }
+
+  updateSelectedVehicleInfo();
+}
+
+function selectVehicle(vehicleId) {
+  currentVehicleId = vehicleId;
   const selected = vehiclesCache.find((v) => v.id === currentVehicleId);
   currentVehicleName = selected ? selected.nome : "";
 
-  metaVehicle.textContent = selected
-    ? `${selected.nome} • ${selected.placa || "sem placa"}${selected.tipo ? ` • ${selected.tipo}` : ""}`
-    : "--";
+  if (selected) {
+    localStorage.setItem("ultimoVeiculoId", selected.id);
+  }
 
+  updateSelectedVehicleInfo();
+  applyVehicleFilter();
   subscribeCurrentRecord();
   subscribeHistory();
 }
 
-async function addVehicle() {
-  const nome = vehicleName.value.trim();
-  const placa = normalizePlate(vehiclePlate.value);
-  const tipo = vehicleType.value.trim();
+function updateSelectedVehicleInfo() {
+  const selected = vehiclesCache.find((v) => v.id === currentVehicleId);
+  currentVehicleName = selected ? selected.nome : "";
 
-  if (!nome) {
-    setMiniMessage(vehicleActionMsg, "Informe o nome do veículo.", true);
+  if (!selected) {
+    selectedVehicleText.textContent = "Nenhum veículo selecionado";
+    metaVehicle.textContent = "--";
     return;
   }
 
-  try {
-    setMiniMessage(vehicleActionMsg, "Adicionando veículo...");
-    await addDoc(collection(db, "veiculos"), {
-      nome,
-      placa,
-      tipo,
-      ativo: true,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-
-    vehicleName.value = "";
-    vehiclePlate.value = "";
-    vehicleType.value = "";
-
-    setMiniMessage(vehicleActionMsg, "Veículo cadastrado com sucesso.");
-  } catch (error) {
-    console.error(error);
-    setMiniMessage(vehicleActionMsg, "Erro ao cadastrar veículo.", true);
-  }
+  const label = `${selected.nome} • ${selected.placa || "sem placa"}${selected.tipo ? ` • ${selected.tipo}` : ""}`;
+  selectedVehicleText.textContent = label;
+  metaVehicle.textContent = label;
 }
 
-/* =========================
-   REGISTRO ATUAL
-========================= */
+function loadLastVehicle() {
+  const saved = localStorage.getItem("ultimoVeiculoId");
+  if (!saved) {
+    showToast("Nenhum último veículo salvo ainda.", "regular");
+    return;
+  }
+
+  const exists = vehiclesCache.find((v) => v.id === saved);
+  if (!exists) {
+    showToast("Último veículo não foi encontrado.", "regular");
+    return;
+  }
+
+  selectVehicle(saved);
+  showToast("Último veículo carregado com sucesso.", "good");
+}
+
 async function saveCurrentRecord(showMessage = false) {
   if (!currentVehicleId) return;
 
@@ -537,11 +558,7 @@ function subscribeCurrentRecord() {
   if (unsubscribeRecord) unsubscribeRecord();
   currentRecordDate = recordDate.value || todayISO();
 
-  const currentVehicle = vehiclesCache.find((v) => v.id === currentVehicleId);
-  currentVehicleName = currentVehicle ? currentVehicle.nome : "";
-  metaVehicle.textContent = currentVehicle
-    ? `${currentVehicle.nome} • ${currentVehicle.placa || "sem placa"}${currentVehicle.tipo ? ` • ${currentVehicle.tipo}` : ""}`
-    : "--";
+  updateSelectedVehicleInfo();
   metaDate.textContent = formatDateBR(currentRecordDate);
 
   unsubscribeRecord = onSnapshot(
@@ -565,8 +582,7 @@ function subscribeCurrentRecord() {
         lastUpdateText.textContent = "Sem salvamento ainda";
       }
     },
-    (error) => {
-      console.error(error);
+    () => {
       connectionStatus.textContent = "Erro de conexão";
     }
   );
@@ -584,16 +600,8 @@ function subscribeHistory() {
   });
 }
 
-/* =========================
-   EVENTOS
-========================= */
-vehicleSelect.addEventListener("change", () => {
-  currentVehicleId = vehicleSelect.value;
-  const selected = vehiclesCache.find((v) => v.id === currentVehicleId);
-  currentVehicleName = selected ? selected.nome : "";
-  subscribeCurrentRecord();
-  subscribeHistory();
-});
+vehicleSearch.addEventListener("input", applyVehicleFilter);
+btnLastVehicle.addEventListener("click", loadLastVehicle);
 
 recordDate.addEventListener("change", () => {
   currentRecordDate = recordDate.value || todayISO();
@@ -606,8 +614,6 @@ fieldIds.forEach((id) => {
   el.addEventListener("change", () => saveCurrentRecord(false));
   el.addEventListener("input", scheduleAutoSave);
 });
-
-btnAddVehicle.addEventListener("click", addVehicle);
 
 btnSave.addEventListener("click", () => saveCurrentRecord(true));
 
@@ -637,9 +643,6 @@ btnEnableNotifications.addEventListener("click", async () => {
   }
 });
 
-/* =========================
-   INICIALIZAÇÃO
-========================= */
 async function init() {
   recordDate.value = todayISO();
   currentRecordDate = recordDate.value;
