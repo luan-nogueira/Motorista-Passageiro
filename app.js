@@ -4,7 +4,6 @@ import {
   collection,
   doc,
   setDoc,
-  deleteDoc,
   onSnapshot,
   serverTimestamp,
   query,
@@ -20,14 +19,15 @@ const firebaseConfig = {
   projectId: "motorista-80298",
   storageBucket: "motorista-80298.firebasestorage.app",
   messagingSenderId: "988614619560",
-  appId: "1:988614619560:web:f2521ff21aae96aa486d9d"
+  appId: "1:988614619560:web:f2521ff21aae96aa486d9d",
+  measurementId: "G-S1T8661860"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // =========================
-// CHECKLIST BASEADO NO PDF
+// CHECKLIST
 // =========================
 const CHECKLIST_SECTIONS = [
   {
@@ -146,14 +146,6 @@ function formatarTimestamp(timestamp) {
   });
 }
 
-function badgeClass(resposta) {
-  return String(resposta).toLowerCase() === "nao" ? "badge-nao" : "badge-sim";
-}
-
-function badgeLabel(resposta) {
-  return String(resposta).toLowerCase() === "nao" ? "Não" : "Sim";
-}
-
 function itemTemAlerta(item) {
   return String(item?.resposta || "").toLowerCase() === "nao";
 }
@@ -167,7 +159,7 @@ function contarAlertas(registros) {
 }
 
 // =========================
-// MONTAGEM DO FORMULÁRIO
+// FORMULÁRIO
 // =========================
 function criarItemChecklist(item, sectionId) {
   return `
@@ -213,7 +205,7 @@ function renderizarFormularioChecklist() {
 renderizarFormularioChecklist();
 
 // =========================
-// COLETA E VALIDAÇÃO
+// VALIDAÇÃO
 // =========================
 function obterRespostaItem(chave) {
   const selecionado = document.querySelector(`input[name="${chave}_resposta"]:checked`);
@@ -241,7 +233,7 @@ function montarDadosFormulario() {
     responsavel: responsavel.value.trim(),
     motorista: motorista.value.trim(),
     veiculoPlaca: veiculoPlaca.value.trim(),
-    km: km.value.trim(),
+    km: km.value ? String(km.value).trim() : "",
     observacoesGerais: observacoesGerais.value.trim(),
     itens: montarItensChecklist()
   };
@@ -253,7 +245,7 @@ function validarDados(dados) {
   if (!dados.motorista) return "Informe o motorista.";
   if (!dados.veiculoPlaca) return "Informe o veículo / placa.";
 
-  const itens = Object.values(dados.itens || []);
+  const itens = Object.values(dados.itens || {});
   if (!itens.length) return "Nenhum item do checklist foi carregado.";
 
   const semResposta = itens.some((item) => !item.resposta);
@@ -275,9 +267,12 @@ function preencherFormulario(dados) {
 
   CHECKLIST_SECTIONS.forEach((section) => {
     section.itens.forEach((item) => {
-      const valor = String(dados?.itens?.[item.chave]?.resposta || "sim").toLowerCase();
-      const radio = document.querySelector(`input[name="${item.chave}_resposta"][value="${valor}"]`);
-      if (radio) radio.checked = true;
+      const valor = String(dados?.itens?.[item.chave]?.resposta || "").toLowerCase();
+
+      const radios = document.querySelectorAll(`input[name="${item.chave}_resposta"]`);
+      radios.forEach((r) => {
+        r.checked = r.value === valor;
+      });
 
       const obs = document.getElementById(`${item.chave}_obs`);
       if (obs) {
@@ -298,7 +293,9 @@ function limparFormulario() {
   CHECKLIST_SECTIONS.forEach((section) => {
     section.itens.forEach((item) => {
       const radios = document.querySelectorAll(`input[name="${item.chave}_resposta"]`);
-      radios.forEach(r => r.checked = false);
+      radios.forEach((r) => {
+        r.checked = false;
+      });
 
       const obs = document.getElementById(`${item.chave}_obs`);
       if (obs) obs.value = "";
@@ -321,7 +318,7 @@ function atualizarModoFormulario() {
 }
 
 // =========================
-// ALERTA VISUAL NOS ITENS
+// ALERTA VISUAL
 // =========================
 function atualizarVisualAlertaItem(chave) {
   const card = document.getElementById(`card_${chave}`);
@@ -329,7 +326,12 @@ function atualizarVisualAlertaItem(chave) {
 
   if (!card) return;
 
-  card.classList.toggle("alert", String(resposta).toLowerCase() === "nao");
+  if (!resposta) {
+    card.classList.remove("alert");
+    return;
+  }
+
+  card.classList.toggle("alert", resposta === "nao");
 }
 
 function registrarEventosChecklist() {
@@ -348,41 +350,11 @@ function registrarEventosChecklist() {
 registrarEventosChecklist();
 
 // =========================
-// RENDERIZAÇÃO LISTA
+// LISTA
 // =========================
-function montarItemView(itemConfig, dadosItem) {
-  const resposta = dadosItem?.resposta || "sim";
-  const observacao = dadosItem?.observacoes || "";
-
-  return `
-    <div class="item-view">
-      <div class="item-view-top">
-        <div class="item-view-title">${escapeHtml(itemConfig.label)}</div>
-        <span class="status-badge ${badgeClass(resposta)}">${badgeLabel(resposta)}</span>
-      </div>
-      ${
-        observacao
-          ? `<div class="item-view-obs"><strong>Observações:</strong> ${escapeHtml(observacao)}</div>`
-          : ""
-      }
-    </div>
-  `;
-}
-
-function montarGrupo(section, dados) {
-  const temAlertaNoGrupo = section.itens.some((item) => itemTemAlerta(dados?.itens?.[item.chave]));
-
-  return `
-    <section class="group-card ${temAlertaNoGrupo ? "alert" : ""}">
-      <h4>${escapeHtml(section.titulo)}</h4>
-      ${section.itens.map((item) => montarItemView(item, dados?.itens?.[item.chave])).join("")}
-    </section>
-  `;
-}
-
 function montarCard(dados) {
   return `
-    <article class="status-card status-card-mini">
+    <article class="status-card">
       <div class="status-card-mini-content">
         <div>
           <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
@@ -390,20 +362,7 @@ function montarCard(dados) {
             Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}
           </p>
         </div>
-
         <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
-      </div>
-    </article>
-  `;
-}
-
-      <div class="card-actions">
-        <button class="btn btn-secondary btn-edit" type="button" data-id="${escapeHtml(dados.dataRegistro)}">
-          Editar
-        </button>
-        <button class="btn btn-danger btn-delete" type="button" data-id="${escapeHtml(dados.dataRegistro)}">
-          Excluir
-        </button>
       </div>
     </article>
   `;
@@ -440,7 +399,7 @@ function atualizarResumo(registros) {
 }
 
 // =========================
-// SALVAR / EDITAR
+// SALVAR
 // =========================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -481,8 +440,8 @@ form.addEventListener("submit", async (e) => {
     limparFormulario();
   } catch (error) {
     console.error("Erro ao salvar no Firebase:", error);
-    setMensagem("Erro ao salvar no Firebase.", true);
-    alert("Erro ao salvar no Firebase.");
+    setMensagem(`Erro ao salvar no Firebase: ${error.message}`, true);
+    alert(`Erro ao salvar no Firebase: ${error.message}`);
   } finally {
     submitBtn.disabled = false;
   }
@@ -497,7 +456,7 @@ cancelEditBtn.addEventListener("click", () => {
 });
 
 // =========================
-// LISTAGEM TEMPO REAL
+// TEMPO REAL
 // =========================
 const colRef = collection(db, "status");
 const q = query(colRef, orderBy("dataRegistro", "desc"));
@@ -511,55 +470,9 @@ onSnapshot(
   },
   (error) => {
     console.error("Erro ao carregar registros:", error);
-    setMensagem("Erro ao carregar registros do Firebase.", true);
+    setMensagem(`Erro ao carregar registros: ${error.message}`, true);
   }
 );
-
-// =========================
-// EDITAR / EXCLUIR
-// =========================
-lista.addEventListener("click", async (e) => {
-  const editBtn = e.target.closest(".btn-edit");
-  const deleteBtn = e.target.closest(".btn-delete");
-
-  if (editBtn) {
-    const docId = editBtn.dataset.id;
-    const dados = currentDocsCache.find((item) => item.dataRegistro === docId);
-
-    if (!dados) {
-      setMensagem("Não foi possível localizar o registro para edição.", true);
-      return;
-    }
-
-    preencherFormulario(dados);
-    editingDocId = docId;
-    atualizarModoFormulario();
-    setMensagem(`Modo edição ativado para ${formatarDataBR(docId)}.`);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-    return;
-  }
-
-  if (deleteBtn) {
-    const docId = deleteBtn.dataset.id;
-    const confirmar = confirm(`Deseja realmente excluir o checklist do dia ${formatarDataBR(docId)}?`);
-
-    if (!confirmar) return;
-
-    try {
-      await deleteDoc(doc(db, "status", docId));
-
-      if (editingDocId === docId) {
-        limparFormulario();
-      }
-
-      setMensagem(`Checklist do dia ${formatarDataBR(docId)} excluído com sucesso.`);
-    } catch (error) {
-      console.error("Erro ao excluir:", error);
-      setMensagem("Erro ao excluir checklist.", true);
-      alert("Erro ao excluir checklist.");
-    }
-  }
-});
 
 // =========================
 // INICIALIZAÇÃO
