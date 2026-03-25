@@ -29,7 +29,6 @@ const db = getFirestore(app);
 
 // =========================
 // CHECKLIST
-// alertOn = valor que deve gerar alerta
 // =========================
 const CHECKLIST_SECTIONS = [
   {
@@ -42,30 +41,7 @@ const CHECKLIST_SECTIONS = [
       { chave: "medicamentos", label: "Estou sob efeito de medicamentos que afetem reflexos", alertOn: "sim" },
       { chave: "condicoesFisicas", label: "Estou em boas condições físicas", alertOn: "nao" },
       { chave: "emocionalmenteEstavel", label: "Estou emocionalmente estável", alertOn: "nao" },
-
-      // ✅ OPCIONAL E SEM ALERTA
       { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)", obrigatorio: false, alertOn: null }
-    ]
-  },
-  {
-    id: "veiculo",
-    titulo: "Verificação do Veículo (Pré-Uso)",
-    itens: [
-      { chave: "pneus", label: "Pneus em bom estado", alertOn: "nao" },
-      { chave: "estepe", label: "Estepe em boas condições", alertOn: "nao" },
-      { chave: "combustivel", label: "Nível de combustível adequado", alertOn: "nao" },
-      { chave: "oleoMotor", label: "Óleo do motor em nível adequado", alertOn: "nao" },
-      { chave: "freios", label: "Freios funcionando normalmente", alertOn: "nao" },
-      { chave: "faroisSetas", label: "Faróis e setas funcionando", alertOn: "nao" }
-    ]
-  },
-  {
-    id: "documentacao",
-    titulo: "Documentação Obrigatória",
-    itens: [
-      { chave: "cnhValida", label: "CNH válida e compatível com o veículo", alertOn: "nao" },
-      { chave: "crlvValido", label: "Documento do veículo (CRLV) válido", alertOn: "nao" },
-      { chave: "autorizacaoEmpresa", label: "Autorização da empresa (se aplicável)", alertOn: "nao" }
     ]
   }
 ];
@@ -77,11 +53,6 @@ const form = document.getElementById("formStatus");
 const lista = document.getElementById("lista");
 const saveMsg = document.getElementById("saveMsg");
 const recordDate = document.getElementById("recordDate");
-const responsavel = document.getElementById("responsavel");
-const motorista = document.getElementById("motorista");
-const veiculoPlaca = document.getElementById("veiculoPlaca");
-const km = document.getElementById("km");
-const observacoesGerais = document.getElementById("observacoesGerais");
 
 const fadigaExtra = document.getElementById("fadigaExtra");
 const fadigaTempo = document.getElementById("fadiga_tempo");
@@ -109,16 +80,16 @@ let currentDocsCache = [];
 let openedDocId = null;
 
 // =========================
-// DATA
+// DATA E HORA
 // =========================
-function hojeISO() {
+function agoraLocalInput() {
   const d = new Date();
   const offset = d.getTimezoneOffset();
   const local = new Date(d.getTime() - offset * 60000);
-  return local.toISOString().split("T")[0];
+  return local.toISOString().slice(0, 16);
 }
 
-recordDate.value = hojeISO();
+recordDate.value = agoraLocalInput();
 
 // =========================
 // HELPERS
@@ -141,11 +112,19 @@ function pegarValor(id) {
   return document.getElementById(id)?.value?.trim() || "";
 }
 
-function formatarDataBR(dataISO) {
-  if (!dataISO) return "--";
-  const [ano, mes, dia] = String(dataISO).split("-");
-  if (!ano || !mes || !dia) return dataISO;
-  return `${dia}/${mes}/${ano}`;
+function formatarDataHoraBR(valor) {
+  if (!valor) return "--";
+
+  const data = new Date(valor);
+
+  if (Number.isNaN(data.getTime())) {
+    return String(valor).replace("T", " ");
+  }
+
+  return data.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short"
+  });
 }
 
 function formatarTimestamp(timestamp) {
@@ -175,7 +154,6 @@ function itemTemAlertaPorChave(chave, itemData) {
   const config = encontrarItemConfig(chave);
   if (!config) return false;
 
-  // ✅ se não houver regra de alerta, nunca alerta
   if (config.alertOn === null || config.alertOn === undefined || config.alertOn === "") {
     return false;
   }
@@ -327,21 +305,13 @@ function montarDadosFormulario() {
 
   return {
     dataRegistro: recordDate.value,
-    responsavel: responsavel.value.trim(),
-    motorista: motorista.value.trim(),
-    veiculoPlaca: veiculoPlaca.value.trim(),
-    km: km.value ? String(km.value).trim() : "",
-    observacoesGerais: observacoesGerais.value.trim(),
     itens: montarItensChecklist(),
     fadiga
   };
 }
 
 function validarDados(dados) {
-  if (!dados.dataRegistro) return "Selecione a data.";
-  if (!dados.responsavel) return "Informe quem fez o checklist.";
-  if (!dados.motorista) return "Informe o motorista.";
-  if (!dados.veiculoPlaca) return "Informe o veículo / placa.";
+  if (!dados.dataRegistro) return "Selecione a data e hora.";
 
   let semResposta = false;
 
@@ -379,12 +349,7 @@ function validarDados(dados) {
 // PREENCHER / LIMPAR
 // =========================
 function preencherFormulario(dados) {
-  recordDate.value = dados?.dataRegistro || hojeISO();
-  responsavel.value = dados?.responsavel || "";
-  motorista.value = dados?.motorista || "";
-  veiculoPlaca.value = dados?.veiculoPlaca || "";
-  km.value = dados?.km || "";
-  observacoesGerais.value = dados?.observacoesGerais || "";
+  recordDate.value = dados?.dataRegistro || agoraLocalInput();
 
   CHECKLIST_SECTIONS.forEach((section) => {
     section.itens.forEach((item) => {
@@ -410,7 +375,7 @@ function preencherFormulario(dados) {
 
 function limparFormulario() {
   form.reset();
-  recordDate.value = hojeISO();
+  recordDate.value = agoraLocalInput();
   editingDocId = null;
   atualizarModoFormulario();
 
@@ -440,7 +405,7 @@ function atualizarModoFormulario() {
   formTitle.textContent = emEdicao ? "Editar checklist" : "Checklist do dia";
   formSubtitle.textContent = emEdicao
     ? "Altere os dados do registro selecionado e salve novamente."
-    : "Preencha as condições do motorista, do veículo e a avaliação de fadiga antes do uso.";
+    : "Preencha as condições do motorista e a avaliação de fadiga.";
 }
 
 // =========================
@@ -687,13 +652,15 @@ function montarCard(dados) {
     ? ` • Fadiga: ${Number(dados?.fadiga?.pontuacao || 0)}`
     : "";
 
+  const titulo = `Checklist de ${formatarDataHoraBR(dados.dataRegistro)}`;
+
   return `
     <article class="status-card status-card-clickable" data-open-id="${escapeHtml(dados.dataRegistro)}">
       <div class="status-card-mini-content">
         <div>
-          <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
+          <h3 class="status-card-title">${titulo}</h3>
           <p class="status-card-subtitle">
-            Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}${fadigaInfo}
+            Registro preenchido${fadigaInfo}
           </p>
         </div>
         <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
@@ -763,24 +730,8 @@ function montarDetalhesModal(dados) {
   return `
     <div class="detail-grid">
       <div class="detail-box">
-        <span>Quem fez</span>
-        <strong>${escapeHtml(dados.responsavel || "--")}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Data</span>
-        <strong>${formatarDataBR(dados.dataRegistro)}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Motorista</span>
-        <strong>${escapeHtml(dados.motorista || "--")}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Veículo / Placa</span>
-        <strong>${escapeHtml(dados.veiculoPlaca || "--")}</strong>
-      </div>
-      <div class="detail-box">
-        <span>KM</span>
-        <strong>${escapeHtml(dados.km || "--")}</strong>
+        <span>Data e Hora</span>
+        <strong>${formatarDataHoraBR(dados.dataRegistro)}</strong>
       </div>
       <div class="detail-box">
         <span>Última atualização</span>
@@ -791,17 +742,6 @@ function montarDetalhesModal(dados) {
     ${CHECKLIST_SECTIONS.map((section) => montarGrupoDetalhe(section, dados)).join("")}
 
     ${montarGrupoFadigaDetalhe(dados?.fadiga || {})}
-
-    ${
-      dados.observacoesGerais
-        ? `
-          <section class="detail-group">
-            <h4>Observações gerais</h4>
-            <div class="detail-item-obs">${escapeHtml(dados.observacoesGerais)}</div>
-          </section>
-        `
-        : ""
-    }
   `;
 }
 
@@ -810,8 +750,8 @@ function abrirModal(docId) {
   if (!dados) return;
 
   openedDocId = docId;
-  modalTitle.textContent = dados.responsavel || "Detalhes do checklist";
-  modalSubtitle.textContent = `Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}`;
+  modalTitle.textContent = "Detalhes do checklist";
+  modalSubtitle.textContent = `Registro de ${formatarDataHoraBR(dados.dataRegistro)}`;
   modalBody.innerHTML = montarDetalhesModal(dados);
   detailsModal.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -846,7 +786,7 @@ modalEditBtn.addEventListener("click", () => {
   preencherFormulario(dados);
   editingDocId = openedDocId;
   atualizarModoFormulario();
-  setMensagem(`Modo edição ativado para ${formatarDataBR(openedDocId)}.`);
+  setMensagem(`Modo edição ativado para ${formatarDataHoraBR(openedDocId)}.`);
   fecharModal();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -854,7 +794,7 @@ modalEditBtn.addEventListener("click", () => {
 modalDeleteBtn.addEventListener("click", async () => {
   if (!openedDocId) return;
 
-  const confirmar = confirm(`Deseja realmente excluir o checklist do dia ${formatarDataBR(openedDocId)}?`);
+  const confirmar = confirm(`Deseja realmente excluir o checklist de ${formatarDataHoraBR(openedDocId)}?`);
   if (!confirmar) return;
 
   try {
@@ -864,7 +804,7 @@ modalDeleteBtn.addEventListener("click", async () => {
       limparFormulario();
     }
 
-    setMensagem(`Checklist do dia ${formatarDataBR(openedDocId)} excluído com sucesso.`);
+    setMensagem(`Checklist de ${formatarDataHoraBR(openedDocId)} excluído com sucesso.`);
     fecharModal();
   } catch (error) {
     console.error("Erro ao excluir checklist:", error);
@@ -908,8 +848,8 @@ form.addEventListener("submit", async (e) => {
 
     setMensagem(
       editingDocId
-        ? `Checklist do dia ${formatarDataBR(docId)} atualizado com sucesso.`
-        : `Checklist do dia ${formatarDataBR(docId)} salvo com sucesso.`
+        ? `Checklist de ${formatarDataHoraBR(docId)} atualizado com sucesso.`
+        : `Checklist de ${formatarDataHoraBR(docId)} salvo com sucesso.`
     );
 
     limparFormulario();
