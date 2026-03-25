@@ -48,35 +48,15 @@
         <div class="section-head">
           <div>
             <h2 id="formTitle">Checklist do dia</h2>
-            <p id="formSubtitle">Preencha as condições do motorista e do veículo antes do uso.</p>
+            <p id="formSubtitle">Preencha as condições do motorista e a avaliação de fadiga.</p>
           </div>
         </div>
 
         <form id="formStatus" class="form-grid">
           <div class="grid-2">
             <div class="field">
-              <label for="recordDate">Data</label>
-              <input type="date" id="recordDate" required />
-            </div>
-
-            <div class="field">
-              <label for="responsavel">Quem fez o checklist</label>
-              <input type="text" id="responsavel" placeholder="Nome de quem preencheu" required />
-            </div>
-
-            <div class="field">
-              <label for="motorista">Motorista</label>
-              <input type="text" id="motorista" placeholder="Nome do motorista" required />
-            </div>
-
-            <div class="field">
-              <label for="veiculoPlaca">Veículo / Placa</label>
-              <input type="text" id="veiculoPlaca" placeholder="Ex.: Fiorino - ABC1D23" required />
-            </div>
-
-            <div class="field">
-              <label for="km">KM</label>
-              <input type="number" id="km" placeholder="Ex.: 125430" min="0" />
+              <label for="recordDate">Data e Hora</label>
+              <input type="datetime-local" id="recordDate" required />
             </div>
           </div>
 
@@ -208,30 +188,6 @@
             </div>
           </section>
 
-          <section class="checklist-section">
-            <div class="checklist-header">
-              <h3>3. Verificação do Veículo (Pré-Uso)</h3>
-              <p>Confira os itens básicos antes de sair.</p>
-            </div>
-            <div id="grupo-veiculo" class="checklist-items"></div>
-          </section>
-
-          <section class="checklist-section">
-            <div class="checklist-header">
-              <h3>4. Documentação Obrigatória</h3>
-              <p>Confirme os documentos necessários.</p>
-            </div>
-            <div id="grupo-documentacao" class="checklist-items"></div>
-          </section>
-
-          <div class="field full">
-            <label for="observacoesGerais">Observações gerais</label>
-            <textarea
-              id="observacoesGerais"
-              placeholder="Anote aqui qualquer observação adicional do checklist."
-            ></textarea>
-          </div>
-
           <div class="message-box" id="saveMsg">Sistema pronto para uso.</div>
 
           <div class="actions-bar full">
@@ -245,7 +201,7 @@
         <div class="section-head">
           <div>
             <h2>Últimos checklists</h2>
-            <p>Clique no nome para ver, editar ou excluir</p>
+            <p>Clique no card para ver, editar ou excluir</p>
           </div>
         </div>
 
