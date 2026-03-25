@@ -53,6 +53,7 @@ const form = document.getElementById("formStatus");
 const lista = document.getElementById("lista");
 const saveMsg = document.getElementById("saveMsg");
 const recordDate = document.getElementById("recordDate");
+const responsavel = document.getElementById("responsavel");
 
 const fadigaExtra = document.getElementById("fadigaExtra");
 const fadigaTempo = document.getElementById("fadiga_tempo");
@@ -305,12 +306,14 @@ function montarDadosFormulario() {
 
   return {
     dataRegistro: recordDate.value,
+    responsavel: responsavel.value.trim(),
     itens: montarItensChecklist(),
     fadiga
   };
 }
 
 function validarDados(dados) {
+  if (!dados.responsavel) return "Informe o nome.";
   if (!dados.dataRegistro) return "Selecione a data e hora.";
 
   let semResposta = false;
@@ -350,6 +353,7 @@ function validarDados(dados) {
 // =========================
 function preencherFormulario(dados) {
   recordDate.value = dados?.dataRegistro || agoraLocalInput();
+  responsavel.value = dados?.responsavel || "";
 
   CHECKLIST_SECTIONS.forEach((section) => {
     section.itens.forEach((item) => {
@@ -376,6 +380,7 @@ function preencherFormulario(dados) {
 function limparFormulario() {
   form.reset();
   recordDate.value = agoraLocalInput();
+  responsavel.value = "";
   editingDocId = null;
   atualizarModoFormulario();
 
@@ -404,8 +409,8 @@ function atualizarModoFormulario() {
 
   formTitle.textContent = emEdicao ? "Editar checklist" : "Checklist do dia";
   formSubtitle.textContent = emEdicao
-    ? "Altere os dados do registro selecionado e salve novamente."
-    : "Preencha as condições do motorista e a avaliação de fadiga.";
+    ? "Altere o nome, a data e as respostas do registro selecionado."
+    : "Preencha o nome, a data e a avaliação.";
 }
 
 // =========================
@@ -652,15 +657,13 @@ function montarCard(dados) {
     ? ` • Fadiga: ${Number(dados?.fadiga?.pontuacao || 0)}`
     : "";
 
-  const titulo = `Checklist de ${formatarDataHoraBR(dados.dataRegistro)}`;
-
   return `
     <article class="status-card status-card-clickable" data-open-id="${escapeHtml(dados.dataRegistro)}">
       <div class="status-card-mini-content">
         <div>
-          <h3 class="status-card-title">${titulo}</h3>
+          <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
           <p class="status-card-subtitle">
-            Registro preenchido${fadigaInfo}
+            Checklist de ${formatarDataHoraBR(dados.dataRegistro)}${fadigaInfo}
           </p>
         </div>
         <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
@@ -730,6 +733,10 @@ function montarDetalhesModal(dados) {
   return `
     <div class="detail-grid">
       <div class="detail-box">
+        <span>Nome</span>
+        <strong>${escapeHtml(dados.responsavel || "--")}</strong>
+      </div>
+      <div class="detail-box">
         <span>Data e Hora</span>
         <strong>${formatarDataHoraBR(dados.dataRegistro)}</strong>
       </div>
@@ -750,8 +757,8 @@ function abrirModal(docId) {
   if (!dados) return;
 
   openedDocId = docId;
-  modalTitle.textContent = "Detalhes do checklist";
-  modalSubtitle.textContent = `Registro de ${formatarDataHoraBR(dados.dataRegistro)}`;
+  modalTitle.textContent = dados.responsavel || "Detalhes do checklist";
+  modalSubtitle.textContent = `Checklist de ${formatarDataHoraBR(dados.dataRegistro)}`;
   modalBody.innerHTML = montarDetalhesModal(dados);
   detailsModal.classList.remove("hidden");
   document.body.style.overflow = "hidden";
@@ -786,7 +793,7 @@ modalEditBtn.addEventListener("click", () => {
   preencherFormulario(dados);
   editingDocId = openedDocId;
   atualizarModoFormulario();
-  setMensagem(`Modo edição ativado para ${formatarDataHoraBR(openedDocId)}.`);
+  setMensagem(`Modo edição ativado para ${dados.responsavel || "registro"} - ${formatarDataHoraBR(openedDocId)}.`);
   fecharModal();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -794,7 +801,10 @@ modalEditBtn.addEventListener("click", () => {
 modalDeleteBtn.addEventListener("click", async () => {
   if (!openedDocId) return;
 
-  const confirmar = confirm(`Deseja realmente excluir o checklist de ${formatarDataHoraBR(openedDocId)}?`);
+  const dados = currentDocsCache.find((item) => item.dataRegistro === openedDocId);
+  const nome = dados?.responsavel || "este registro";
+
+  const confirmar = confirm(`Deseja realmente excluir o checklist de ${nome} em ${formatarDataHoraBR(openedDocId)}?`);
   if (!confirmar) return;
 
   try {
@@ -804,7 +814,7 @@ modalDeleteBtn.addEventListener("click", async () => {
       limparFormulario();
     }
 
-    setMensagem(`Checklist de ${formatarDataHoraBR(openedDocId)} excluído com sucesso.`);
+    setMensagem(`Checklist excluído com sucesso.`);
     fecharModal();
   } catch (error) {
     console.error("Erro ao excluir checklist:", error);
@@ -848,8 +858,8 @@ form.addEventListener("submit", async (e) => {
 
     setMensagem(
       editingDocId
-        ? `Checklist de ${formatarDataHoraBR(docId)} atualizado com sucesso.`
-        : `Checklist de ${formatarDataHoraBR(docId)} salvo com sucesso.`
+        ? `Checklist atualizado com sucesso.`
+        : `Checklist salvo com sucesso.`
     );
 
     limparFormulario();
