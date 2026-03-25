@@ -42,9 +42,11 @@ const CHECKLIST_SECTIONS = [
       { chave: "medicamentos", label: "Estou sob efeito de medicamentos que afetem reflexos", alertOn: "sim" },
       { chave: "condicoesFisicas", label: "Estou em boas condições físicas", alertOn: "nao" },
       { chave: "emocionalmenteEstavel", label: "Estou emocionalmente estável", alertOn: "nao" },
-      { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)",obrigatorio: false }
+
+      // ✅ OPCIONAL E SEM ALERTA
+      { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)", obrigatorio: false, alertOn: null }
     ]
-  }
+  },
   {
     id: "veiculo",
     titulo: "Verificação do Veículo (Pré-Uso)",
@@ -173,10 +175,15 @@ function itemTemAlertaPorChave(chave, itemData) {
   const config = encontrarItemConfig(chave);
   if (!config) return false;
 
+  // ✅ se não houver regra de alerta, nunca alerta
+  if (config.alertOn === null || config.alertOn === undefined || config.alertOn === "") {
+    return false;
+  }
+
   const resposta = String(itemData?.resposta || "").toLowerCase();
   if (!resposta) return false;
 
-  return resposta === String(config.alertOn || "nao").toLowerCase();
+  return resposta === String(config.alertOn).toLowerCase();
 }
 
 function fadigaTemAlerta(dados) {
