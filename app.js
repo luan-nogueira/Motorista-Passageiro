@@ -42,7 +42,7 @@ const CHECKLIST_SECTIONS = [
       { chave: "medicamentos", label: "Estou sob efeito de medicamentos que afetem reflexos", alertOn: "sim" },
       { chave: "condicoesFisicas", label: "Estou em boas condições físicas", alertOn: "nao" },
       { chave: "emocionalmenteEstavel", label: "Estou emocionalmente estável", alertOn: "nao" },
-      { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)", alertOn: "nao",obrigatorio: false }
+      { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)",obrigatorio: false }
     ]
   },
   {
