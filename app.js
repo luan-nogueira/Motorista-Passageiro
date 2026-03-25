@@ -336,17 +336,20 @@ function validarDados(dados) {
   if (!dados.motorista) return "Informe o motorista.";
   if (!dados.veiculoPlaca) return "Informe o veículo / placa.";
 
-  const itens = Object.values(dados.itens || {});
-  if (!itens.length) return "Nenhum item do checklist foi carregado.";
+  let semResposta = false;
 
-const semResposta = Object.entries(dados.itens).some(([chave, item]) => {
-  // 👇 ignora essa pergunta
-  if (chave === "oculosLentes") return false;
+  CHECKLIST_SECTIONS.forEach((section) => {
+    section.itens.forEach((item) => {
+      const obrigatorio = item.obrigatorio !== false;
+      const resposta = dados.itens?.[item.chave]?.resposta || "";
 
-  return !item.resposta;
-});
+      if (obrigatorio && !resposta) {
+        semResposta = true;
+      }
+    });
+  });
 
-if (semResposta) return "Responda TODOS os itens do checklist.";
+  if (semResposta) return "Responda TODOS os itens obrigatórios do checklist.";
 
   if (!dados.fadiga?.recente || !dados.fadiga?.energia) {
     return "Responda as duas perguntas iniciais da Avaliação de Fadiga.";
