@@ -46,15 +46,6 @@ const CHECKLIST_SECTIONS = [
     ]
   },
   {
-    id: "documentacao",
-    titulo: "Documentação Obrigatória",
-    itens: [
-      { chave: "cnhValida", label: "CNH válida e compatível com o veículo", alertOn: "nao" },
-      { chave: "crlvValido", label: "Documento do veículo (CRLV) válido", alertOn: "nao" },
-      { chave: "autorizacaoEmpresa", label: "Autorização da empresa (se aplicável)", alertOn: "nao" }
-    ]
-  },
-  {
     id: "veiculo",
     titulo: "Verificação do Veículo (Pré-Uso)",
     itens: [
@@ -64,6 +55,15 @@ const CHECKLIST_SECTIONS = [
       { chave: "oleoMotor", label: "Óleo do motor em nível adequado", alertOn: "nao" },
       { chave: "freios", label: "Freios funcionando normalmente", alertOn: "nao" },
       { chave: "faroisSetas", label: "Faróis e setas funcionando", alertOn: "nao" }
+    ]
+  },
+  {
+    id: "documentacao",
+    titulo: "Documentação Obrigatória",
+    itens: [
+      { chave: "cnhValida", label: "CNH válida e compatível com o veículo", alertOn: "nao" },
+      { chave: "crlvValido", label: "Documento do veículo (CRLV) válido", alertOn: "nao" },
+      { chave: "autorizacaoEmpresa", label: "Autorização da empresa (se aplicável)", alertOn: "nao" }
     ]
   }
 ];
