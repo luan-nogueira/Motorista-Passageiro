@@ -104,6 +104,126 @@
             <div id="grupo-veiculo" class="checklist-items"></div>
           </section>
 
+          <section class="checklist-section">
+            <div class="checklist-header">
+              <h3>4. Avaliação de Fadiga</h3>
+              <p>Se houver resposta positiva nas perguntas iniciais, as perguntas complementares serão obrigatórias.</p>
+            </div>
+
+            <div class="checklist-items">
+              <article class="check-item" id="card_fadiga_recente">
+                <div class="check-item-head">
+                  <div class="check-item-title">Você notou que tem se sentido cansado recentemente?</div>
+                  <div class="check-options">
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_recente_resposta" value="sim" />
+                      Sim
+                    </label>
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_recente_resposta" value="nao" />
+                      Não
+                    </label>
+                  </div>
+                </div>
+              </article>
+
+              <article class="check-item" id="card_fadiga_energia">
+                <div class="check-item-head">
+                  <div class="check-item-title">Você tem se sentido com falta de energia?</div>
+                  <div class="check-options">
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_energia_resposta" value="sim" />
+                      Sim
+                    </label>
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_energia_resposta" value="nao" />
+                      Não
+                    </label>
+                  </div>
+                </div>
+              </article>
+
+              <div id="fadigaExtra" class="fadiga-extra hidden">
+                <article class="check-item" id="card_fadiga_tempo">
+                  <div class="field full">
+                    <label for="fadiga_tempo">Você tem se sentido cansado ou com falta de energia? Se SIM, especifique há quanto tempo isso está ocorrendo</label>
+                    <textarea
+                      id="fadiga_tempo"
+                      placeholder="Ex.: há 2 dias, desde a semana passada, apenas ontem, etc."
+                    ></textarea>
+                  </div>
+                </article>
+
+                <article class="check-item" id="card_fadiga_3h">
+                  <div class="check-item-head">
+                    <div class="check-item-title">Você se sentiu cansado ou com falta de energia por mais do que 3 horas no dia anterior?</div>
+                    <div class="check-options">
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_3h_resposta" value="sim" />
+                        Sim
+                      </label>
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_3h_resposta" value="nao" />
+                        Não
+                      </label>
+                    </div>
+                  </div>
+                  <div class="field full helper-text">
+                    <small>Marque 1 ponto se a resposta for "Sim".</small>
+                  </div>
+                </article>
+
+                <article class="check-item" id="card_fadiga_esforco">
+                  <div class="check-item-head">
+                    <div class="check-item-title">Você se sentiu tão cansado que teve de se esforçar muito para conseguir fazer as coisas no dia anterior?</div>
+                    <div class="check-options">
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_esforco_resposta" value="sim" />
+                        Sim
+                      </label>
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_esforco_resposta" value="nao" />
+                        Não
+                      </label>
+                    </div>
+                  </div>
+                  <div class="field full helper-text">
+                    <small>Marque 1 ponto se a resposta for "Sim".</small>
+                  </div>
+                </article>
+
+                <article class="check-item" id="card_fadiga_prazer">
+                  <div class="check-item-head">
+                    <div class="check-item-title">Você se sentiu cansado ou com falta de energia fazendo coisas que você gosta no dia anterior?</div>
+                    <div class="check-options">
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_prazer_resposta" value="sim" />
+                        Sim
+                      </label>
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_prazer_resposta" value="nao" />
+                        Não
+                      </label>
+                    </div>
+                  </div>
+                  <div class="field full helper-text">
+                    <small>Marque 1 ponto se a resposta for "Sim".</small>
+                  </div>
+                </article>
+
+                <article class="check-item score-card" id="card_fadiga_pontuacao">
+                  <div class="score-wrap">
+                    <div>
+                      <div class="score-title">Pontuação da fadiga</div>
+                      <div class="score-subtitle">Soma das 3 respostas complementares com “Sim”.</div>
+                    </div>
+                    <div class="score-badge" id="fadigaPontuacao">0</div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </section>
+
           <div class="field full">
             <label for="observacoesGerais">Observações gerais</label>
             <textarea
