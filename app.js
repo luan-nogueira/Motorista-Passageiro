@@ -339,8 +339,14 @@ function validarDados(dados) {
   const itens = Object.values(dados.itens || {});
   if (!itens.length) return "Nenhum item do checklist foi carregado.";
 
-  const semResposta = itens.some((item) => !item.resposta);
-  if (semResposta) return "Responda TODOS os itens do checklist.";
+const semResposta = Object.entries(dados.itens).some(([chave, item]) => {
+  // 👇 ignora essa pergunta
+  if (chave === "oculosLentes") return false;
+
+  return !item.resposta;
+});
+
+if (semResposta) return "Responda TODOS os itens do checklist.";
 
   if (!dados.fadiga?.recente || !dados.fadiga?.energia) {
     return "Responda as duas perguntas iniciais da Avaliação de Fadiga.";
