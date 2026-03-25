@@ -81,6 +81,10 @@ const veiculoPlaca = document.getElementById("veiculoPlaca");
 const km = document.getElementById("km");
 const observacoesGerais = document.getElementById("observacoesGerais");
 
+const fadigaExtra = document.getElementById("fadigaExtra");
+const fadigaTempo = document.getElementById("fadiga_tempo");
+const fadigaPontuacaoEl = document.getElementById("fadigaPontuacao");
+
 const formTitle = document.getElementById("formTitle");
 const formSubtitle = document.getElementById("formSubtitle");
 const submitBtn = document.getElementById("submitBtn");
@@ -175,10 +179,21 @@ function itemTemAlertaPorChave(chave, itemData) {
   return resposta === String(config.alertOn || "nao").toLowerCase();
 }
 
+function fadigaTemAlerta(dados) {
+  const fadiga = dados?.fadiga || {};
+  return (
+    String(fadiga?.recente || "").toLowerCase() === "sim" ||
+    String(fadiga?.energia || "").toLowerCase() === "sim" ||
+    Number(fadiga?.pontuacao || 0) > 0
+  );
+}
+
 function registroTemAlerta(dados) {
-  return Object.entries(dados?.itens || {}).some(([chave, item]) =>
+  const checklistComAlerta = Object.entries(dados?.itens || {}).some(([chave, item]) =>
     itemTemAlertaPorChave(chave, item)
   );
+
+  return checklistComAlerta || fadigaTemAlerta(dados);
 }
 
 function contarAlertas(registros) {
@@ -194,6 +209,42 @@ function badgeLabel(resposta) {
   if (String(resposta).toLowerCase() === "sim") return "Sim";
   if (String(resposta).toLowerCase() === "nao") return "Não";
   return "--";
+}
+
+function obterRespostaPorName(name) {
+  const selecionado = document.querySelector(`input[name="${name}"]:checked`);
+  return selecionado ? selecionado.value : "";
+}
+
+function fadigaRequerComplemento() {
+  const recente = obterRespostaPorName("fadiga_recente_resposta");
+  const energia = obterRespostaPorName("fadiga_energia_resposta");
+  return recente === "sim" || energia === "sim";
+}
+
+function calcularPontuacaoFadigaComDados(fadiga) {
+  return ["mais3h", "esforco", "prazer"].reduce((total, chave) => {
+    return total + (String(fadiga?.[chave] || "").toLowerCase() === "sim" ? 1 : 0);
+  }, 0);
+}
+
+function obterDadosFadiga() {
+  const fadiga = {
+    recente: obterRespostaPorName("fadiga_recente_resposta"),
+    energia: obterRespostaPorName("fadiga_energia_resposta"),
+    tempo: pegarValor("fadiga_tempo"),
+    mais3h: obterRespostaPorName("fadiga_3h_resposta"),
+    esforco: obterRespostaPorName("fadiga_esforco_resposta"),
+    prazer: obterRespostaPorName("fadiga_prazer_resposta")
+  };
+
+  fadiga.pontuacao = calcularPontuacaoFadigaComDados(fadiga);
+  return fadiga;
+}
+
+function atualizarPontuacaoFadiga() {
+  const fadiga = obterDadosFadiga();
+  fadigaPontuacaoEl.textContent = String(fadiga.pontuacao);
 }
 
 // =========================
@@ -265,6 +316,8 @@ function montarItensChecklist() {
 }
 
 function montarDadosFormulario() {
+  const fadiga = obterDadosFadiga();
+
   return {
     dataRegistro: recordDate.value,
     responsavel: responsavel.value.trim(),
@@ -272,7 +325,8 @@ function montarDadosFormulario() {
     veiculoPlaca: veiculoPlaca.value.trim(),
     km: km.value ? String(km.value).trim() : "",
     observacoesGerais: observacoesGerais.value.trim(),
-    itens: montarItensChecklist()
+    itens: montarItensChecklist(),
+    fadiga
   };
 }
 
@@ -287,6 +341,20 @@ function validarDados(dados) {
 
   const semResposta = itens.some((item) => !item.resposta);
   if (semResposta) return "Responda TODOS os itens do checklist.";
+
+  if (!dados.fadiga?.recente || !dados.fadiga?.energia) {
+    return "Responda as duas perguntas iniciais da Avaliação de Fadiga.";
+  }
+
+  if (fadigaRequerComplemento()) {
+    if (!dados.fadiga?.tempo) {
+      return "Informe há quanto tempo o cansaço ou a falta de energia está ocorrendo.";
+    }
+
+    if (!dados.fadiga?.mais3h || !dados.fadiga?.esforco || !dados.fadiga?.prazer) {
+      return "Responda todas as perguntas complementares da Avaliação de Fadiga.";
+    }
+  }
 
   return "";
 }
@@ -319,6 +387,9 @@ function preencherFormulario(dados) {
       atualizarVisualAlertaItem(item.chave);
     });
   });
+
+  preencherFadiga(dados?.fadiga || {});
+  atualizarVisualFadiga();
 }
 
 function limparFormulario() {
@@ -340,6 +411,8 @@ function limparFormulario() {
       atualizarVisualAlertaItem(item.chave);
     });
   });
+
+  limparFadiga();
 }
 
 function atualizarModoFormulario() {
@@ -351,7 +424,7 @@ function atualizarModoFormulario() {
   formTitle.textContent = emEdicao ? "Editar checklist" : "Checklist do dia";
   formSubtitle.textContent = emEdicao
     ? "Altere os dados do registro selecionado e salve novamente."
-    : "Preencha as condições do motorista e do veículo antes do uso.";
+    : "Preencha as condições do motorista, do veículo e a avaliação de fadiga antes do uso.";
 }
 
 // =========================
@@ -374,6 +447,206 @@ function atualizarVisualAlertaItem(chave) {
   );
 }
 
+// =========================
+// FADIGA
+// =========================
+function marcarRadio(name, valor) {
+  const radios = document.querySelectorAll(`input[name="${name}"]`);
+  radios.forEach((radio) => {
+    radio.checked = radio.value === String(valor || "").toLowerCase();
+  });
+}
+
+function limparRadios(name) {
+  const radios = document.querySelectorAll(`input[name="${name}"]`);
+  radios.forEach((radio) => {
+    radio.checked = false;
+  });
+}
+
+function preencherFadiga(fadiga) {
+  marcarRadio("fadiga_recente_resposta", fadiga?.recente);
+  marcarRadio("fadiga_energia_resposta", fadiga?.energia);
+  marcarRadio("fadiga_3h_resposta", fadiga?.mais3h);
+  marcarRadio("fadiga_esforco_resposta", fadiga?.esforco);
+  marcarRadio("fadiga_prazer_resposta", fadiga?.prazer);
+  fadigaTempo.value = fadiga?.tempo || "";
+  atualizarPontuacaoFadiga();
+  atualizarExibicaoFadigaExtra();
+}
+
+function limparFadiga() {
+  limparRadios("fadiga_recente_resposta");
+  limparRadios("fadiga_energia_resposta");
+  limparRadios("fadiga_3h_resposta");
+  limparRadios("fadiga_esforco_resposta");
+  limparRadios("fadiga_prazer_resposta");
+  fadigaTempo.value = "";
+  atualizarExibicaoFadigaExtra();
+  atualizarPontuacaoFadiga();
+  atualizarVisualFadiga();
+}
+
+function atualizarExibicaoFadigaExtra() {
+  const mostrar = fadigaRequerComplemento();
+  fadigaExtra.classList.toggle("hidden", !mostrar);
+
+  if (!mostrar) {
+    limparRadios("fadiga_3h_resposta");
+    limparRadios("fadiga_esforco_resposta");
+    limparRadios("fadiga_prazer_resposta");
+    fadigaTempo.value = "";
+  }
+
+  atualizarPontuacaoFadiga();
+}
+
+function atualizarVisualFadiga() {
+  const fadiga = obterDadosFadiga();
+
+  const cardRecente = document.getElementById("card_fadiga_recente");
+  const cardEnergia = document.getElementById("card_fadiga_energia");
+  const cardTempo = document.getElementById("card_fadiga_tempo");
+  const card3h = document.getElementById("card_fadiga_3h");
+  const cardEsforco = document.getElementById("card_fadiga_esforco");
+  const cardPrazer = document.getElementById("card_fadiga_prazer");
+  const cardPontuacao = document.getElementById("card_fadiga_pontuacao");
+
+  const highlight = (card, ativo) => {
+    if (!card) return;
+    card.classList.toggle("warning", !!ativo);
+  };
+
+  highlight(cardRecente, fadiga.recente === "sim");
+  highlight(cardEnergia, fadiga.energia === "sim");
+  highlight(cardTempo, fadigaRequerComplemento() && !!fadiga.tempo);
+  highlight(card3h, fadiga.mais3h === "sim");
+  highlight(cardEsforco, fadiga.esforco === "sim");
+  highlight(cardPrazer, fadiga.prazer === "sim");
+  highlight(cardPontuacao, fadiga.pontuacao > 0);
+}
+
+function registrarEventosFadiga() {
+  const radiosPrincipais = [
+    "fadiga_recente_resposta",
+    "fadiga_energia_resposta"
+  ];
+
+  const radiosComplementares = [
+    "fadiga_3h_resposta",
+    "fadiga_esforco_resposta",
+    "fadiga_prazer_resposta"
+  ];
+
+  radiosPrincipais.forEach((name) => {
+    document.querySelectorAll(`input[name="${name}"]`).forEach((radio) => {
+      radio.addEventListener("change", () => {
+        atualizarExibicaoFadigaExtra();
+        atualizarVisualFadiga();
+      });
+    });
+  });
+
+  radiosComplementares.forEach((name) => {
+    document.querySelectorAll(`input[name="${name}"]`).forEach((radio) => {
+      radio.addEventListener("change", () => {
+        atualizarPontuacaoFadiga();
+        atualizarVisualFadiga();
+      });
+    });
+  });
+
+  fadigaTempo.addEventListener("input", () => {
+    atualizarVisualFadiga();
+  });
+
+  atualizarExibicaoFadigaExtra();
+  atualizarVisualFadiga();
+}
+
+function montarGrupoFadigaDetalhe(fadiga) {
+  const pontuacao = Number(fadiga?.pontuacao || 0);
+
+  return `
+    <section class="detail-group">
+      <h4>Avaliação de Fadiga</h4>
+
+      <div class="detail-item">
+        <div class="detail-item-main">
+          <div class="detail-item-title">Você notou que tem se sentido cansado recentemente?</div>
+        </div>
+        <span class="status-badge ${String(fadiga?.recente || "").toLowerCase() === "sim" ? "badge-warning" : "badge-sim"}">${badgeLabel(fadiga?.recente)}</span>
+      </div>
+
+      <div class="detail-item">
+        <div class="detail-item-main">
+          <div class="detail-item-title">Você tem se sentido com falta de energia?</div>
+        </div>
+        <span class="status-badge ${String(fadiga?.energia || "").toLowerCase() === "sim" ? "badge-warning" : "badge-sim"}">${badgeLabel(fadiga?.energia)}</span>
+      </div>
+
+      ${
+        fadigaRequerComplementoComDados(fadiga)
+          ? `
+            <div class="detail-item">
+              <div class="detail-item-main">
+                <div class="detail-item-title">Há quanto tempo isso está ocorrendo?</div>
+                <div class="detail-item-obs">${escapeHtml(fadiga?.tempo || "--")}</div>
+              </div>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-item-main">
+                <div class="detail-item-title">Mais do que 3 horas no dia anterior?</div>
+              </div>
+              <span class="status-badge ${String(fadiga?.mais3h || "").toLowerCase() === "sim" ? "badge-warning" : "badge-sim"}">${badgeLabel(fadiga?.mais3h)}</span>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-item-main">
+                <div class="detail-item-title">Teve de se esforçar muito para conseguir fazer as coisas?</div>
+              </div>
+              <span class="status-badge ${String(fadiga?.esforco || "").toLowerCase() === "sim" ? "badge-warning" : "badge-sim"}">${badgeLabel(fadiga?.esforco)}</span>
+            </div>
+
+            <div class="detail-item">
+              <div class="detail-item-main">
+                <div class="detail-item-title">Sentiu cansaço fazendo coisas que gosta?</div>
+              </div>
+              <span class="status-badge ${String(fadiga?.prazer || "").toLowerCase() === "sim" ? "badge-warning" : "badge-sim"}">${badgeLabel(fadiga?.prazer)}</span>
+            </div>
+          `
+          : `
+            <div class="detail-item">
+              <div class="detail-item-main">
+                <div class="detail-item-title">Perguntas complementares</div>
+                <div class="detail-item-obs">Não foi necessário responder, pois as perguntas iniciais foram marcadas como "Não".</div>
+              </div>
+            </div>
+          `
+      }
+
+      <div class="detail-item">
+        <div class="detail-item-main">
+          <div class="detail-item-title">Pontuação da fadiga</div>
+          <div class="detail-item-obs">Soma de respostas "Sim" nas 3 perguntas complementares.</div>
+        </div>
+        <span class="status-badge ${pontuacao > 0 ? "badge-warning" : "badge-sim"}">${pontuacao}</span>
+      </div>
+    </section>
+  `;
+}
+
+function fadigaRequerComplementoComDados(fadiga) {
+  return (
+    String(fadiga?.recente || "").toLowerCase() === "sim" ||
+    String(fadiga?.energia || "").toLowerCase() === "sim"
+  );
+}
+
+// =========================
+// EVENTOS CHECKLIST
+// =========================
 function registrarEventosChecklist() {
   CHECKLIST_SECTIONS.forEach((section) => {
     section.itens.forEach((item) => {
@@ -388,18 +661,23 @@ function registrarEventosChecklist() {
 }
 
 registrarEventosChecklist();
+registrarEventosFadiga();
 
 // =========================
 // LISTA
 // =========================
 function montarCard(dados) {
+  const fadigaInfo = Number(dados?.fadiga?.pontuacao || 0) > 0
+    ? ` • Fadiga: ${Number(dados?.fadiga?.pontuacao || 0)}`
+    : "";
+
   return `
     <article class="status-card status-card-clickable" data-open-id="${escapeHtml(dados.dataRegistro)}">
       <div class="status-card-mini-content">
         <div>
           <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
           <p class="status-card-subtitle">
-            Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}
+            Checklist preenchido em ${formatarDataBR(dados.dataRegistro)}${fadigaInfo}
           </p>
         </div>
         <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
@@ -495,6 +773,8 @@ function montarDetalhesModal(dados) {
     </div>
 
     ${CHECKLIST_SECTIONS.map((section) => montarGrupoDetalhe(section, dados)).join("")}
+
+    ${montarGrupoFadigaDetalhe(dados?.fadiga || {})}
 
     ${
       dados.observacoesGerais
@@ -679,4 +959,7 @@ lista.addEventListener("click", (e) => {
 // INICIALIZAÇÃO
 // =========================
 atualizarModoFormulario();
+atualizarExibicaoFadigaExtra();
+atualizarPontuacaoFadiga();
+atualizarVisualFadiga();
 setMensagem("Sistema pronto para uso.");
