@@ -44,7 +44,7 @@ const CHECKLIST_SECTIONS = [
       { chave: "emocionalmenteEstavel", label: "Estou emocionalmente estável", alertOn: "nao" },
       { chave: "oculosLentes", label: "Estou utilizando óculos/lentes (se obrigatório)",obrigatorio: false }
     ]
-  },
+  }
   {
     id: "veiculo",
     titulo: "Verificação do Veículo (Pré-Uso)",
