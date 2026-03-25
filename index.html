@@ -48,12 +48,17 @@
         <div class="section-head">
           <div>
             <h2 id="formTitle">Checklist do dia</h2>
-            <p id="formSubtitle">Preencha as condições do motorista e a avaliação de fadiga.</p>
+            <p id="formSubtitle">Preencha o nome, a data e a avaliação.</p>
           </div>
         </div>
 
         <form id="formStatus" class="form-grid">
           <div class="grid-2">
+            <div class="field">
+              <label for="responsavel">Nome</label>
+              <input type="text" id="responsavel" placeholder="Digite o nome" required />
+            </div>
+
             <div class="field">
               <label for="recordDate">Data e Hora</label>
               <input type="datetime-local" id="recordDate" required />
@@ -63,7 +68,7 @@
           <section class="checklist-section">
             <div class="checklist-header">
               <h3>1. Condições Físicas e Mentais</h3>
-              <p>Marque a condição atual do motorista.</p>
+              <p>Marque a condição atual.</p>
             </div>
             <div id="grupo-condicoes" class="checklist-items"></div>
           </section>
@@ -110,10 +115,10 @@
               <div id="fadigaExtra" class="fadiga-extra hidden">
                 <article class="check-item" id="card_fadiga_tempo">
                   <div class="field full">
-                    <label for="fadiga_tempo">Você tem se sentido cansado ou com falta de energia? Se SIM, especifique há quanto tempo isso está ocorrendo</label>
+                    <label for="fadiga_tempo">Se SIM, informe há quanto tempo isso está ocorrendo</label>
                     <textarea
                       id="fadiga_tempo"
-                      placeholder="Ex.: há 2 dias, desde a semana passada, apenas ontem, etc."
+                      placeholder="Ex.: há 2 dias, desde ontem, desde a semana passada..."
                     ></textarea>
                   </div>
                 </article>
