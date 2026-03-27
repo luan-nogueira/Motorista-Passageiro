@@ -68,12 +68,18 @@ const cancelEditBtn = document.getElementById("cancelEditBtn");
 
 const totalRegistrosEl = document.getElementById("totalRegistros");
 const totalAlertasEl = document.getElementById("totalAlertas");
+const totalRiscoAltoEl = document.getElementById("totalRiscoAlto");
+const totalHojeEl = document.getElementById("totalHoje");
+const mediaFadigaEl = document.getElementById("mediaFadiga");
 const ultimaAtualizacaoEl = document.getElementById("ultimaAtualizacao");
 
 const filtroNomeEl = document.getElementById("filtroNome");
-const filtroDataEl = document.getElementById("filtroData");
+const filtroDataInicioEl = document.getElementById("filtroDataInicio");
+const filtroDataFimEl = document.getElementById("filtroDataFim");
 const btnLimparFiltros = document.getElementById("btnLimparFiltros");
 const btnVerMais = document.getElementById("btnVerMais");
+const btnVerMenos = document.getElementById("btnVerMenos");
+const btnExportarExcel = document.getElementById("btnExportarExcel");
 
 const detailsModal = document.getElementById("detailsModal");
 const modalBody = document.getElementById("modalBody");
@@ -126,7 +132,6 @@ function pegarValor(id) {
 
 function formatarDataHoraBR(valor) {
   if (!valor) return "--";
-
   const data = new Date(valor);
 
   if (Number.isNaN(data.getTime())) {
@@ -154,6 +159,26 @@ function formatarTimestamp(timestamp) {
   });
 }
 
+function formatarDataArquivo(date = new Date()) {
+  const ano = date.getFullYear();
+  const mes = String(date.getMonth() + 1).padStart(2, "0");
+  const dia = String(date.getDate()).padStart(2, "0");
+  const hora = String(date.getHours()).padStart(2, "0");
+  const minuto = String(date.getMinutes()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}_${hora}-${minuto}`;
+}
+
+function mesmaDataLocal(dataA, dataB) {
+  const a = new Date(dataA);
+  const b = new Date(dataB);
+
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 function encontrarItemConfig(chave) {
   for (const section of CHECKLIST_SECTIONS) {
     const item = section.itens.find((i) => i.chave === chave);
@@ -176,6 +201,12 @@ function itemTemAlertaPorChave(chave, itemData) {
   return resposta === String(config.alertOn).toLowerCase();
 }
 
+function calcularPontuacaoFadigaComDados(fadiga) {
+  return ["mais3h", "esforco", "prazer"].reduce((total, chave) => {
+    return total + (String(fadiga?.[chave] || "").toLowerCase() === "sim" ? 1 : 0);
+  }, 0);
+}
+
 function fadigaTemAlerta(dados) {
   const fadiga = dados?.fadiga || {};
   return (
@@ -183,6 +214,10 @@ function fadigaTemAlerta(dados) {
     String(fadiga?.energia || "").toLowerCase() === "sim" ||
     Number(fadiga?.pontuacao || 0) > 0
   );
+}
+
+function riscoAlto(dados) {
+  return Number(dados?.fadiga?.pontuacao || 0) >= 2;
 }
 
 function registroTemAlerta(dados) {
@@ -195,6 +230,10 @@ function registroTemAlerta(dados) {
 
 function contarAlertas(registros) {
   return registros.filter((registro) => registroTemAlerta(registro)).length;
+}
+
+function contarRiscoAlto(registros) {
+  return registros.filter((registro) => riscoAlto(registro)).length;
 }
 
 function badgeClass(chave, resposta) {
@@ -226,12 +265,6 @@ function fadigaRequerComplementoComDados(fadiga) {
   );
 }
 
-function calcularPontuacaoFadigaComDados(fadiga) {
-  return ["mais3h", "esforco", "prazer"].reduce((total, chave) => {
-    return total + (String(fadiga?.[chave] || "").toLowerCase() === "sim" ? 1 : 0);
-  }, 0);
-}
-
 function obterDadosFadiga() {
   const fadiga = {
     recente: obterRespostaPorName("fadiga_recente_resposta"),
@@ -248,7 +281,9 @@ function obterDadosFadiga() {
 
 function atualizarPontuacaoFadiga() {
   const fadiga = obterDadosFadiga();
-  fadigaPontuacaoEl.textContent = String(fadiga.pontuacao);
+  const pontuacao = fadiga.pontuacao;
+  fadigaPontuacaoEl.textContent = String(pontuacao);
+  fadigaPontuacaoEl.classList.toggle("high", pontuacao >= 2);
 }
 
 // =========================
@@ -437,13 +472,14 @@ function atualizarVisualAlertaItem(chave) {
 
   if (!resposta) {
     card.classList.remove("alert");
+    card.classList.remove("danger");
     return;
   }
 
-  card.classList.toggle(
-    "alert",
-    itemTemAlertaPorChave(chave, { resposta })
-  );
+  const temAlerta = itemTemAlertaPorChave(chave, { resposta });
+
+  card.classList.toggle("alert", temAlerta);
+  card.classList.toggle("danger", false);
 }
 
 // =========================
@@ -511,9 +547,10 @@ function atualizarVisualFadiga() {
   const cardPrazer = document.getElementById("card_fadiga_prazer");
   const cardPontuacao = document.getElementById("card_fadiga_pontuacao");
 
-  const highlight = (card, ativo) => {
+  const highlight = (card, ativo, danger = false) => {
     if (!card) return;
-    card.classList.toggle("warning", !!ativo);
+    card.classList.toggle("warning", !!ativo && !danger);
+    card.classList.toggle("danger", !!ativo && danger);
   };
 
   highlight(cardRecente, fadiga.recente === "sim");
@@ -522,7 +559,7 @@ function atualizarVisualFadiga() {
   highlight(card3h, fadiga.mais3h === "sim");
   highlight(cardEsforco, fadiga.esforco === "sim");
   highlight(cardPrazer, fadiga.prazer === "sim");
-  highlight(cardPontuacao, fadiga.pontuacao > 0);
+  highlight(cardPontuacao, fadiga.pontuacao > 0, fadiga.pontuacao >= 2);
 }
 
 function registrarEventosFadiga() {
@@ -568,38 +605,47 @@ function registrarEventosFadiga() {
 // =========================
 function getRegistrosFiltrados() {
   const nome = filtroNomeEl.value.trim().toLowerCase();
-  const data = filtroDataEl.value;
+  const dataInicio = filtroDataInicioEl.value;
+  const dataFim = filtroDataFimEl.value;
 
   return currentDocsCache.filter((item) => {
     const nomeOk = !nome || String(item.responsavel || "").toLowerCase().includes(nome);
-    const dataOk = !data || String(item.dataRegistro || "").startsWith(data);
-    return nomeOk && dataOk;
+
+    const dataItem = item?.dataRegistro ? new Date(item.dataRegistro) : null;
+    const dataValida = dataItem && !Number.isNaN(dataItem.getTime());
+
+    const inicioOk = !dataInicio || (dataValida && item.dataRegistro.slice(0, 10) >= dataInicio);
+    const fimOk = !dataFim || (dataValida && item.dataRegistro.slice(0, 10) <= dataFim);
+
+    return nomeOk && inicioOk && fimOk;
   });
 }
 
 function montarCard(dados) {
   const temAlerta = registroTemAlerta(dados);
-  const fadigaInfo = Number(dados?.fadiga?.pontuacao || 0) > 0
-    ? ` • Fadiga: ${Number(dados?.fadiga?.pontuacao || 0)}`
-    : "";
+  const alto = riscoAlto(dados);
+  const pontuacao = Number(dados?.fadiga?.pontuacao || 0);
 
-  const chipAlerta = temAlerta
-    ? `<span class="alert-chip">⚠ Com alerta</span>`
-    : `<span class="status-badge badge-sim">Sem alerta</span>`;
+  let chipStatus = `<span class="status-badge badge-sim">Sem alerta</span>`;
+  if (alto) {
+    chipStatus = `<span class="risk-chip">🚨 RISCO ALTO</span>`;
+  } else if (temAlerta) {
+    chipStatus = `<span class="alert-chip">⚠ Com alerta</span>`;
+  }
 
   return `
-    <article class="status-card status-card-clickable ${temAlerta ? "alert-card" : ""}" data-open-id="${escapeHtml(dados.__docId)}">
+    <article class="status-card status-card-clickable ${alto ? "high-risk-card" : temAlerta ? "alert-card" : ""}" data-open-id="${escapeHtml(dados.__docId)}">
       <div class="status-card-mini-content">
         <div>
           <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
           <p class="status-card-subtitle">
-            Checklist de ${formatarDataHoraBR(dados.dataRegistro)}${fadigaInfo}
+            Checklist de ${formatarDataHoraBR(dados.dataRegistro)} • Fadiga: ${pontuacao}
           </p>
         </div>
 
         <div class="status-card-mini-content">
           <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
-          ${chipAlerta}
+          ${chipStatus}
         </div>
       </div>
     </article>
@@ -620,6 +666,7 @@ function renderizarLista() {
       </li>
     `;
     btnVerMais.classList.add("hidden");
+    btnVerMenos.classList.add("hidden");
     return;
   }
 
@@ -629,16 +676,26 @@ function renderizarLista() {
     lista.appendChild(li);
   });
 
-  if (filtrados.length > visibleCount) {
-    btnVerMais.classList.remove("hidden");
-  } else {
-    btnVerMais.classList.add("hidden");
-  }
+  btnVerMais.classList.toggle("hidden", filtrados.length <= visibleCount);
+  btnVerMenos.classList.toggle("hidden", visibleCount <= PAGE_SIZE);
 }
 
 function atualizarResumo(registros) {
+  const filtrados = getRegistrosFiltrados();
+  const hoje = new Date();
+
   totalRegistrosEl.textContent = String(registros.length);
   totalAlertasEl.textContent = String(contarAlertas(registros));
+  totalRiscoAltoEl.textContent = String(contarRiscoAlto(registros));
+  totalHojeEl.textContent = String(
+    registros.filter((item) => item?.dataRegistro && mesmaDataLocal(item.dataRegistro, hoje)).length
+  );
+
+  const media = filtrados.length
+    ? filtrados.reduce((acc, item) => acc + Number(item?.fadiga?.pontuacao || 0), 0) / filtrados.length
+    : 0;
+
+  mediaFadigaEl.textContent = media.toFixed(1);
 
   const primeiro = registros[0];
   ultimaAtualizacaoEl.textContent = primeiro
@@ -649,6 +706,59 @@ function atualizarResumo(registros) {
 function reaplicarRenderizacao() {
   renderizarLista();
   atualizarResumo(currentDocsCache);
+}
+
+// =========================
+// EXPORTAR EXCEL
+// =========================
+function gerarLinhasExcel(registros) {
+  return registros.map((dados) => ({
+    "Nome": dados.responsavel || "",
+    "Data e Hora": formatarDataHoraBR(dados.dataRegistro),
+    "Data ISO": dados.dataRegistro || "",
+    "Descansado": dados?.itens?.descansado?.resposta || "",
+    "Álcool": dados?.itens?.alcool?.resposta || "",
+    "Drogas": dados?.itens?.drogas?.resposta || "",
+    "Medicamentos": dados?.itens?.medicamentos?.resposta || "",
+    "Condições Físicas": dados?.itens?.condicoesFisicas?.resposta || "",
+    "Emocionalmente Estável": dados?.itens?.emocionalmenteEstavel?.resposta || "",
+    "Óculos/Lentes": dados?.itens?.oculosLentes?.resposta || "",
+    "Obs Descansado": dados?.itens?.descansado?.observacoes || "",
+    "Obs Álcool": dados?.itens?.alcool?.observacoes || "",
+    "Obs Drogas": dados?.itens?.drogas?.observacoes || "",
+    "Obs Medicamentos": dados?.itens?.medicamentos?.observacoes || "",
+    "Obs Condições Físicas": dados?.itens?.condicoesFisicas?.observacoes || "",
+    "Obs Emocionalmente Estável": dados?.itens?.emocionalmenteEstavel?.observacoes || "",
+    "Obs Óculos/Lentes": dados?.itens?.oculosLentes?.observacoes || "",
+    "Fadiga Recente": dados?.fadiga?.recente || "",
+    "Fadiga Energia": dados?.fadiga?.energia || "",
+    "Fadiga Tempo": dados?.fadiga?.tempo || "",
+    "Fadiga +3h": dados?.fadiga?.mais3h || "",
+    "Fadiga Esforço": dados?.fadiga?.esforco || "",
+    "Fadiga Prazer": dados?.fadiga?.prazer || "",
+    "Pontuação Fadiga": Number(dados?.fadiga?.pontuacao || 0),
+    "Com Alerta": registroTemAlerta(dados) ? "Sim" : "Não",
+    "Risco Alto": riscoAlto(dados) ? "Sim" : "Não",
+    "Última Atualização": formatarTimestamp(dados.atualizadoEm || dados.criadoEm)
+  }));
+}
+
+function exportarExcel() {
+  const filtrados = getRegistrosFiltrados();
+
+  if (!filtrados.length) {
+    alert("Não há registros para exportar com os filtros atuais.");
+    return;
+  }
+
+  const linhas = gerarLinhasExcel(filtrados);
+  const ws = XLSX.utils.json_to_sheet(linhas);
+  const wb = XLSX.utils.book_new();
+
+  XLSX.utils.book_append_sheet(wb, ws, "Checklists");
+
+  const nomeArquivo = `checklists_fadiga_${formatarDataArquivo()}.xlsx`;
+  XLSX.writeFile(wb, nomeArquivo);
 }
 
 // =========================
@@ -680,6 +790,7 @@ function montarGrupoDetalhe(section, dados) {
 
 function montarGrupoFadigaDetalhe(fadiga) {
   const pontuacao = Number(fadiga?.pontuacao || 0);
+  const pontuacaoClass = pontuacao >= 2 ? "badge-danger" : pontuacao > 0 ? "badge-warning" : "badge-sim";
 
   return `
     <section class="detail-group">
@@ -745,7 +856,7 @@ function montarGrupoFadigaDetalhe(fadiga) {
           <div class="detail-item-title">Pontuação da fadiga</div>
           <div class="detail-item-obs">Soma de respostas "Sim" nas 3 perguntas complementares.</div>
         </div>
-        <span class="status-badge ${pontuacao > 0 ? "badge-warning" : "badge-sim"}">${pontuacao}</span>
+        <span class="status-badge ${pontuacaoClass}">${pontuacao}</span>
       </div>
     </section>
   `;
@@ -768,7 +879,7 @@ function montarDetalhesModal(dados) {
       </div>
       <div class="detail-box">
         <span>Status</span>
-        <strong>${registroTemAlerta(dados) ? "Com alerta" : "Sem alerta"}</strong>
+        <strong>${riscoAlto(dados) ? "RISCO ALTO" : registroTemAlerta(dados) ? "Com alerta" : "Sem alerta"}</strong>
       </div>
     </div>
 
@@ -873,22 +984,36 @@ btnVerMais.addEventListener("click", () => {
   renderizarLista();
 });
 
-filtroNomeEl.addEventListener("input", () => {
+btnVerMenos.addEventListener("click", () => {
   visibleCount = PAGE_SIZE;
   renderizarLista();
+  window.scrollTo({ top: document.querySelector(".panel.card:last-of-type")?.offsetTop || 0, behavior: "smooth" });
 });
 
-filtroDataEl.addEventListener("input", () => {
+filtroNomeEl.addEventListener("input", () => {
   visibleCount = PAGE_SIZE;
-  renderizarLista();
+  reaplicarRenderizacao();
+});
+
+filtroDataInicioEl.addEventListener("input", () => {
+  visibleCount = PAGE_SIZE;
+  reaplicarRenderizacao();
+});
+
+filtroDataFimEl.addEventListener("input", () => {
+  visibleCount = PAGE_SIZE;
+  reaplicarRenderizacao();
 });
 
 btnLimparFiltros.addEventListener("click", () => {
   filtroNomeEl.value = "";
-  filtroDataEl.value = "";
+  filtroDataInicioEl.value = "";
+  filtroDataFimEl.value = "";
   visibleCount = PAGE_SIZE;
-  renderizarLista();
+  reaplicarRenderizacao();
 });
+
+btnExportarExcel.addEventListener("click", exportarExcel);
 
 lista.addEventListener("click", (e) => {
   const card = e.target.closest("[data-open-id]");
@@ -915,7 +1040,7 @@ form.addEventListener("submit", async (e) => {
     return;
   }
 
-  const docId = editingDocId || dados.dataRegistro;
+  const docId = editingDocId || crypto.randomUUID();
   const docRef = doc(db, "status", docId);
 
   try {
@@ -965,10 +1090,22 @@ const q = query(colRef, orderBy("dataRegistro", "desc"));
 onSnapshot(
   q,
   (snapshot) => {
-    currentDocsCache = snapshot.docs.map((registro) => ({
-      __docId: registro.id,
-      ...registro.data()
-    }));
+    currentDocsCache = snapshot.docs.map((registro) => {
+      const data = registro.data();
+      const fadiga = {
+        ...(data.fadiga || {})
+      };
+
+      fadiga.pontuacao = Number(
+        data?.fadiga?.pontuacao ?? calcularPontuacaoFadigaComDados(fadiga)
+      );
+
+      return {
+        __docId: registro.id,
+        ...data,
+        fadiga
+      };
+    });
 
     visibleCount = Math.max(PAGE_SIZE, visibleCount);
     reaplicarRenderizacao();
