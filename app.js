@@ -28,8 +28,10 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // =========================
-// CHECKLIST
+// CONFIG
 // =========================
+const PAGE_SIZE = 5;
+
 const CHECKLIST_SECTIONS = [
   {
     id: "condicoes",
@@ -68,6 +70,11 @@ const totalRegistrosEl = document.getElementById("totalRegistros");
 const totalAlertasEl = document.getElementById("totalAlertas");
 const ultimaAtualizacaoEl = document.getElementById("ultimaAtualizacao");
 
+const filtroNomeEl = document.getElementById("filtroNome");
+const filtroDataEl = document.getElementById("filtroData");
+const btnLimparFiltros = document.getElementById("btnLimparFiltros");
+const btnVerMais = document.getElementById("btnVerMais");
+
 const detailsModal = document.getElementById("detailsModal");
 const modalBody = document.getElementById("modalBody");
 const modalTitle = document.getElementById("modalTitle");
@@ -76,9 +83,13 @@ const closeModalBtn = document.getElementById("closeModalBtn");
 const modalEditBtn = document.getElementById("modalEditBtn");
 const modalDeleteBtn = document.getElementById("modalDeleteBtn");
 
+// =========================
+// ESTADO
+// =========================
 let editingDocId = null;
 let currentDocsCache = [];
 let openedDocId = null;
+let visibleCount = PAGE_SIZE;
 
 // =========================
 // DATA E HORA
@@ -208,6 +219,13 @@ function fadigaRequerComplemento() {
   return recente === "sim" || energia === "sim";
 }
 
+function fadigaRequerComplementoComDados(fadiga) {
+  return (
+    String(fadiga?.recente || "").toLowerCase() === "sim" ||
+    String(fadiga?.energia || "").toLowerCase() === "sim"
+  );
+}
+
 function calcularPontuacaoFadigaComDados(fadiga) {
   return ["mais3h", "esforco", "prazer"].reduce((total, chave) => {
     return total + (String(fadiga?.[chave] || "").toLowerCase() === "sim" ? 1 : 0);
@@ -276,11 +294,6 @@ function renderizarFormularioChecklist() {
   });
 }
 
-renderizarFormularioChecklist();
-
-// =========================
-// VALIDAÇÃO
-// =========================
 function obterRespostaItem(chave) {
   const selecionado = document.querySelector(`input[name="${chave}_resposta"]:checked`);
   return selecionado ? selecionado.value : "";
@@ -550,6 +563,121 @@ function registrarEventosFadiga() {
   atualizarVisualFadiga();
 }
 
+// =========================
+// LISTA / FILTROS
+// =========================
+function getRegistrosFiltrados() {
+  const nome = filtroNomeEl.value.trim().toLowerCase();
+  const data = filtroDataEl.value;
+
+  return currentDocsCache.filter((item) => {
+    const nomeOk = !nome || String(item.responsavel || "").toLowerCase().includes(nome);
+    const dataOk = !data || String(item.dataRegistro || "").startsWith(data);
+    return nomeOk && dataOk;
+  });
+}
+
+function montarCard(dados) {
+  const temAlerta = registroTemAlerta(dados);
+  const fadigaInfo = Number(dados?.fadiga?.pontuacao || 0) > 0
+    ? ` • Fadiga: ${Number(dados?.fadiga?.pontuacao || 0)}`
+    : "";
+
+  const chipAlerta = temAlerta
+    ? `<span class="alert-chip">⚠ Com alerta</span>`
+    : `<span class="status-badge badge-sim">Sem alerta</span>`;
+
+  return `
+    <article class="status-card status-card-clickable ${temAlerta ? "alert-card" : ""}" data-open-id="${escapeHtml(dados.__docId)}">
+      <div class="status-card-mini-content">
+        <div>
+          <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
+          <p class="status-card-subtitle">
+            Checklist de ${formatarDataHoraBR(dados.dataRegistro)}${fadigaInfo}
+          </p>
+        </div>
+
+        <div class="status-card-mini-content">
+          <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
+          ${chipAlerta}
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderizarLista() {
+  const filtrados = getRegistrosFiltrados();
+  const exibidos = filtrados.slice(0, visibleCount);
+
+  lista.innerHTML = "";
+
+  if (!filtrados.length) {
+    lista.innerHTML = `
+      <li class="empty-state">
+        <strong>Nenhum checklist encontrado.</strong>
+        <span>Tente ajustar os filtros ou criar um novo registro.</span>
+      </li>
+    `;
+    btnVerMais.classList.add("hidden");
+    return;
+  }
+
+  exibidos.forEach((dados) => {
+    const li = document.createElement("li");
+    li.innerHTML = montarCard(dados);
+    lista.appendChild(li);
+  });
+
+  if (filtrados.length > visibleCount) {
+    btnVerMais.classList.remove("hidden");
+  } else {
+    btnVerMais.classList.add("hidden");
+  }
+}
+
+function atualizarResumo(registros) {
+  totalRegistrosEl.textContent = String(registros.length);
+  totalAlertasEl.textContent = String(contarAlertas(registros));
+
+  const primeiro = registros[0];
+  ultimaAtualizacaoEl.textContent = primeiro
+    ? formatarTimestamp(primeiro.atualizadoEm || primeiro.criadoEm)
+    : "--";
+}
+
+function reaplicarRenderizacao() {
+  renderizarLista();
+  atualizarResumo(currentDocsCache);
+}
+
+// =========================
+// MODAL
+// =========================
+function montarItemDetalhe(itemConfig, itemData) {
+  const resposta = itemData?.resposta || "";
+  const obs = itemData?.observacoes || "";
+
+  return `
+    <div class="detail-item">
+      <div class="detail-item-main">
+        <div class="detail-item-title">${escapeHtml(itemConfig.label)}</div>
+        ${obs ? `<div class="detail-item-obs"><strong>Observações:</strong> ${escapeHtml(obs)}</div>` : ""}
+      </div>
+      <span class="status-badge ${badgeClass(itemConfig.chave, resposta)}">${badgeLabel(resposta)}</span>
+    </div>
+  `;
+}
+
+function montarGrupoDetalhe(section, dados) {
+  return `
+    <section class="detail-group">
+      <h4>${escapeHtml(section.titulo)}</h4>
+      ${section.itens.map((item) => montarItemDetalhe(item, dados?.itens?.[item.chave])).join("")}
+    </section>
+  `;
+}
+
 function montarGrupoFadigaDetalhe(fadiga) {
   const pontuacao = Number(fadiga?.pontuacao || 0);
 
@@ -623,11 +751,49 @@ function montarGrupoFadigaDetalhe(fadiga) {
   `;
 }
 
-function fadigaRequerComplementoComDados(fadiga) {
-  return (
-    String(fadiga?.recente || "").toLowerCase() === "sim" ||
-    String(fadiga?.energia || "").toLowerCase() === "sim"
-  );
+function montarDetalhesModal(dados) {
+  return `
+    <div class="detail-grid">
+      <div class="detail-box">
+        <span>Nome</span>
+        <strong>${escapeHtml(dados.responsavel || "--")}</strong>
+      </div>
+      <div class="detail-box">
+        <span>Data e Hora</span>
+        <strong>${formatarDataHoraBR(dados.dataRegistro)}</strong>
+      </div>
+      <div class="detail-box">
+        <span>Última atualização</span>
+        <strong>${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</strong>
+      </div>
+      <div class="detail-box">
+        <span>Status</span>
+        <strong>${registroTemAlerta(dados) ? "Com alerta" : "Sem alerta"}</strong>
+      </div>
+    </div>
+
+    ${CHECKLIST_SECTIONS.map((section) => montarGrupoDetalhe(section, dados)).join("")}
+
+    ${montarGrupoFadigaDetalhe(dados?.fadiga || {})}
+  `;
+}
+
+function abrirModal(docId) {
+  const dados = currentDocsCache.find((item) => item.__docId === docId);
+  if (!dados) return;
+
+  openedDocId = docId;
+  modalTitle.textContent = dados.responsavel || "Detalhes do checklist";
+  modalSubtitle.textContent = `Checklist de ${formatarDataHoraBR(dados.dataRegistro)}`;
+  modalBody.innerHTML = montarDetalhesModal(dados);
+  detailsModal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+function fecharModal() {
+  openedDocId = null;
+  detailsModal.classList.add("hidden");
+  document.body.style.overflow = "";
 }
 
 // =========================
@@ -646,130 +812,9 @@ function registrarEventosChecklist() {
   });
 }
 
-registrarEventosChecklist();
-registrarEventosFadiga();
-
 // =========================
-// LISTA
+// EVENTOS GERAIS
 // =========================
-function montarCard(dados) {
-  const fadigaInfo = Number(dados?.fadiga?.pontuacao || 0) > 0
-    ? ` • Fadiga: ${Number(dados?.fadiga?.pontuacao || 0)}`
-    : "";
-
-  return `
-    <article class="status-card status-card-clickable" data-open-id="${escapeHtml(dados.dataRegistro)}">
-      <div class="status-card-mini-content">
-        <div>
-          <h3 class="status-card-title">${escapeHtml(dados.responsavel || "--")}</h3>
-          <p class="status-card-subtitle">
-            Checklist de ${formatarDataHoraBR(dados.dataRegistro)}${fadigaInfo}
-          </p>
-        </div>
-        <span class="card-date">${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</span>
-      </div>
-    </article>
-  `;
-}
-
-function renderizarLista(registros) {
-  lista.innerHTML = "";
-
-  if (!registros.length) {
-    lista.innerHTML = `
-      <li class="empty-state">
-        <strong>Nenhum checklist encontrado.</strong>
-        <span>Os registros salvos aparecerão aqui em tempo real.</span>
-      </li>
-    `;
-    return;
-  }
-
-  registros.forEach((dados) => {
-    const li = document.createElement("li");
-    li.innerHTML = montarCard(dados);
-    lista.appendChild(li);
-  });
-}
-
-function atualizarResumo(registros) {
-  totalRegistrosEl.textContent = String(registros.length);
-  totalAlertasEl.textContent = String(contarAlertas(registros));
-
-  const primeiro = registros[0];
-  ultimaAtualizacaoEl.textContent = primeiro
-    ? formatarTimestamp(primeiro.atualizadoEm || primeiro.criadoEm)
-    : "--";
-}
-
-// =========================
-// MODAL
-// =========================
-function montarItemDetalhe(itemConfig, itemData) {
-  const resposta = itemData?.resposta || "";
-  const obs = itemData?.observacoes || "";
-
-  return `
-    <div class="detail-item">
-      <div class="detail-item-main">
-        <div class="detail-item-title">${escapeHtml(itemConfig.label)}</div>
-        ${obs ? `<div class="detail-item-obs"><strong>Observações:</strong> ${escapeHtml(obs)}</div>` : ""}
-      </div>
-      <span class="status-badge ${badgeClass(itemConfig.chave, resposta)}">${badgeLabel(resposta)}</span>
-    </div>
-  `;
-}
-
-function montarGrupoDetalhe(section, dados) {
-  return `
-    <section class="detail-group">
-      <h4>${escapeHtml(section.titulo)}</h4>
-      ${section.itens.map((item) => montarItemDetalhe(item, dados?.itens?.[item.chave])).join("")}
-    </section>
-  `;
-}
-
-function montarDetalhesModal(dados) {
-  return `
-    <div class="detail-grid">
-      <div class="detail-box">
-        <span>Nome</span>
-        <strong>${escapeHtml(dados.responsavel || "--")}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Data e Hora</span>
-        <strong>${formatarDataHoraBR(dados.dataRegistro)}</strong>
-      </div>
-      <div class="detail-box">
-        <span>Última atualização</span>
-        <strong>${formatarTimestamp(dados.atualizadoEm || dados.criadoEm)}</strong>
-      </div>
-    </div>
-
-    ${CHECKLIST_SECTIONS.map((section) => montarGrupoDetalhe(section, dados)).join("")}
-
-    ${montarGrupoFadigaDetalhe(dados?.fadiga || {})}
-  `;
-}
-
-function abrirModal(docId) {
-  const dados = currentDocsCache.find((item) => item.dataRegistro === docId);
-  if (!dados) return;
-
-  openedDocId = docId;
-  modalTitle.textContent = dados.responsavel || "Detalhes do checklist";
-  modalSubtitle.textContent = `Checklist de ${formatarDataHoraBR(dados.dataRegistro)}`;
-  modalBody.innerHTML = montarDetalhesModal(dados);
-  detailsModal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-}
-
-function fecharModal() {
-  openedDocId = null;
-  detailsModal.classList.add("hidden");
-  document.body.style.overflow = "";
-}
-
 closeModalBtn.addEventListener("click", fecharModal);
 
 detailsModal.addEventListener("click", (e) => {
@@ -787,13 +832,13 @@ document.addEventListener("keydown", (e) => {
 modalEditBtn.addEventListener("click", () => {
   if (!openedDocId) return;
 
-  const dados = currentDocsCache.find((item) => item.dataRegistro === openedDocId);
+  const dados = currentDocsCache.find((item) => item.__docId === openedDocId);
   if (!dados) return;
 
   preencherFormulario(dados);
   editingDocId = openedDocId;
   atualizarModoFormulario();
-  setMensagem(`Modo edição ativado para ${dados.responsavel || "registro"} - ${formatarDataHoraBR(openedDocId)}.`);
+  setMensagem(`Modo edição ativado para ${dados.responsavel || "registro"} - ${formatarDataHoraBR(dados.dataRegistro)}.`);
   fecharModal();
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -801,10 +846,10 @@ modalEditBtn.addEventListener("click", () => {
 modalDeleteBtn.addEventListener("click", async () => {
   if (!openedDocId) return;
 
-  const dados = currentDocsCache.find((item) => item.dataRegistro === openedDocId);
+  const dados = currentDocsCache.find((item) => item.__docId === openedDocId);
   const nome = dados?.responsavel || "este registro";
 
-  const confirmar = confirm(`Deseja realmente excluir o checklist de ${nome} em ${formatarDataHoraBR(openedDocId)}?`);
+  const confirmar = confirm(`Deseja realmente excluir o checklist de ${nome} em ${formatarDataHoraBR(dados?.dataRegistro)}?`);
   if (!confirmar) return;
 
   try {
@@ -814,13 +859,45 @@ modalDeleteBtn.addEventListener("click", async () => {
       limparFormulario();
     }
 
-    setMensagem(`Checklist excluído com sucesso.`);
+    setMensagem("Checklist excluído com sucesso.");
     fecharModal();
   } catch (error) {
     console.error("Erro ao excluir checklist:", error);
     setMensagem(`Erro ao excluir checklist: ${error.message}`, true);
     alert(`Erro ao excluir checklist: ${error.message}`);
   }
+});
+
+btnVerMais.addEventListener("click", () => {
+  visibleCount += PAGE_SIZE;
+  renderizarLista();
+});
+
+filtroNomeEl.addEventListener("input", () => {
+  visibleCount = PAGE_SIZE;
+  renderizarLista();
+});
+
+filtroDataEl.addEventListener("input", () => {
+  visibleCount = PAGE_SIZE;
+  renderizarLista();
+});
+
+btnLimparFiltros.addEventListener("click", () => {
+  filtroNomeEl.value = "";
+  filtroDataEl.value = "";
+  visibleCount = PAGE_SIZE;
+  renderizarLista();
+});
+
+lista.addEventListener("click", (e) => {
+  const card = e.target.closest("[data-open-id]");
+  if (!card) return;
+
+  const docId = card.getAttribute("data-open-id");
+  if (!docId) return;
+
+  abrirModal(docId);
 });
 
 // =========================
@@ -849,7 +926,6 @@ form.addEventListener("submit", async (e) => {
       docRef,
       {
         ...dados,
-        dataRegistro: docId,
         ...(editingDocId ? {} : { criadoEm: serverTimestamp() }),
         atualizadoEm: serverTimestamp()
       },
@@ -858,8 +934,8 @@ form.addEventListener("submit", async (e) => {
 
     setMensagem(
       editingDocId
-        ? `Checklist atualizado com sucesso.`
-        : `Checklist salvo com sucesso.`
+        ? "Checklist atualizado com sucesso."
+        : "Checklist salvo com sucesso."
     );
 
     limparFormulario();
@@ -889,12 +965,16 @@ const q = query(colRef, orderBy("dataRegistro", "desc"));
 onSnapshot(
   q,
   (snapshot) => {
-    currentDocsCache = snapshot.docs.map((registro) => registro.data());
-    renderizarLista(currentDocsCache);
-    atualizarResumo(currentDocsCache);
+    currentDocsCache = snapshot.docs.map((registro) => ({
+      __docId: registro.id,
+      ...registro.data()
+    }));
+
+    visibleCount = Math.max(PAGE_SIZE, visibleCount);
+    reaplicarRenderizacao();
 
     if (openedDocId) {
-      const aindaExiste = currentDocsCache.find((item) => item.dataRegistro === openedDocId);
+      const aindaExiste = currentDocsCache.find((item) => item.__docId === openedDocId);
       if (aindaExiste) {
         abrirModal(openedDocId);
       } else {
@@ -909,21 +989,11 @@ onSnapshot(
 );
 
 // =========================
-// CLICK NA LISTA
-// =========================
-lista.addEventListener("click", (e) => {
-  const card = e.target.closest("[data-open-id]");
-  if (!card) return;
-
-  const docId = card.getAttribute("data-open-id");
-  if (!docId) return;
-
-  abrirModal(docId);
-});
-
-// =========================
 // INICIALIZAÇÃO
 // =========================
+renderizarFormularioChecklist();
+registrarEventosChecklist();
+registrarEventosFadiga();
 atualizarModoFormulario();
 atualizarExibicaoFadigaExtra();
 atualizarPontuacaoFadiga();
