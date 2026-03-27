@@ -20,7 +20,7 @@
       <div class="brand-wrap">
         <div class="brand-icon">🥱</div>
         <div class="brand-text">
-          <h1>Ckecklist condições de trabalho - Fadiga</h1>
+          <h1>Checklist condições de trabalho - Fadiga</h1>
           <p>Controle em tempo real</p>
         </div>
       </div>
@@ -203,14 +203,35 @@
       </section>
 
       <section class="panel card">
-        <div class="section-head">
+        <div class="section-head section-head-stack">
           <div>
             <h2>Últimos checklists</h2>
             <p>Clique no card para ver, editar ou excluir</p>
           </div>
+
+          <div class="filters-bar">
+            <div class="field">
+              <label for="filtroNome">Buscar por nome</label>
+              <input type="text" id="filtroNome" placeholder="Digite o nome..." />
+            </div>
+
+            <div class="field">
+              <label for="filtroData">Filtrar por data</label>
+              <input type="date" id="filtroData" />
+            </div>
+
+            <div class="field filter-actions">
+              <label>&nbsp;</label>
+              <button class="btn btn-light" id="btnLimparFiltros" type="button">Limpar filtros</button>
+            </div>
+          </div>
         </div>
 
         <ul class="records-list" id="lista"></ul>
+
+        <div class="load-more-wrap">
+          <button class="btn btn-light" id="btnVerMais" type="button">Ver mais</button>
+        </div>
       </section>
     </main>
   </div>
