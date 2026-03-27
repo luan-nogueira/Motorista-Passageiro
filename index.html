@@ -27,7 +27,7 @@
     </header>
 
     <main class="app-content">
-      <section class="summary-grid">
+      <section class="summary-grid summary-grid-6">
         <article class="summary-card">
           <span class="summary-label">Registros</span>
           <strong id="totalRegistros">0</strong>
@@ -36,6 +36,21 @@
         <article class="summary-card alert">
           <span class="summary-label">Com alerta</span>
           <strong id="totalAlertas">0</strong>
+        </article>
+
+        <article class="summary-card danger-soft">
+          <span class="summary-label">Risco alto</span>
+          <strong id="totalRiscoAlto">0</strong>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-label">Registros hoje</span>
+          <strong id="totalHoje">0</strong>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-label">Média fadiga</span>
+          <strong id="mediaFadiga">0.0</strong>
         </article>
 
         <article class="summary-card wide">
@@ -209,15 +224,20 @@
             <p>Clique no card para ver, editar ou excluir</p>
           </div>
 
-          <div class="filters-bar">
+          <div class="filters-bar filters-bar-advanced">
             <div class="field">
               <label for="filtroNome">Buscar por nome</label>
               <input type="text" id="filtroNome" placeholder="Digite o nome..." />
             </div>
 
             <div class="field">
-              <label for="filtroData">Filtrar por data</label>
-              <input type="date" id="filtroData" />
+              <label for="filtroDataInicio">Data inicial</label>
+              <input type="date" id="filtroDataInicio" />
+            </div>
+
+            <div class="field">
+              <label for="filtroDataFim">Data final</label>
+              <input type="date" id="filtroDataFim" />
             </div>
 
             <div class="field filter-actions">
@@ -225,12 +245,17 @@
               <button class="btn btn-light" id="btnLimparFiltros" type="button">Limpar filtros</button>
             </div>
           </div>
+
+          <div class="toolbar-bar">
+            <button class="btn btn-light" id="btnExportarExcel" type="button">Exportar Excel</button>
+          </div>
         </div>
 
         <ul class="records-list" id="lista"></ul>
 
-        <div class="load-more-wrap">
+        <div class="load-more-wrap load-more-wrap-double">
           <button class="btn btn-light" id="btnVerMais" type="button">Ver mais</button>
+          <button class="btn btn-light" id="btnVerMenos" type="button">Ver menos</button>
         </div>
       </section>
     </main>
@@ -255,6 +280,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
