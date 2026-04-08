@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Checklist Diário do Motorista</title>
+  <title>SafeDrive Monitor</title>
 
   <meta name="theme-color" content="#0a192f" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -14,15 +14,30 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="mobile-app">
-    <header class="topbar">
-      <div class="topbar-badge">Operacional</div>
+  <section id="welcomeScreen" class="welcome-screen">
+    <div class="welcome-overlay"></div>
+    <div class="welcome-card">
+      <div class="welcome-badge">Sistema Comercial</div>
+      <h1>SafeDrive Monitor</h1>
+      <p>Plataforma premium para controle de fadiga, registros operacionais e análise inteligente em tempo real.</p>
+      <div class="welcome-actions">
+        <button id="enterSystemBtn" class="btn btn-primary btn-xl" type="button">Entrar no sistema</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="mobile-app hidden" id="appShell">
+    <header class="topbar premium-topbar">
+      <div class="topbar-badge">Enterprise</div>
       <div class="brand-wrap">
-        <div class="brand-icon">🥱</div>
+        <div class="brand-icon">🛡️</div>
         <div class="brand-text">
-          <h1>Checklist condições de trabalho - Fadiga</h1>
-          <p>Controle em tempo real</p>
+          <h1>SafeDrive Monitor</h1>
+          <p>Painel inteligente de controle de fadiga</p>
         </div>
+
+      <div class="topbar-actions">
+        <button id="btnToggleTheme" class="btn btn-light btn-icon" type="button">🌙</button>
       </div>
     </header>
 
@@ -217,6 +232,68 @@
         </form>
       </section>
 
+      </section>
+
+      <section class="panel card premium-actions-bar">
+        <div class="premium-actions-wrap">
+          <div>
+            <h2 class="premium-title">Central de operação</h2>
+            <p class="premium-subtitle">Visualize insights, acompanhe métricas e abra os gráficos somente quando precisar.</p>
+          </div>
+
+          <div class="premium-buttons">
+            <button id="btnToggleCharts" class="btn btn-primary" type="button">📊 Gráficos</button>
+          </div>
+        </div>
+
+        <div class="insights-grid" id="insightsGrid">
+          <article class="insight-card">
+            <span class="insight-label">Status geral</span>
+            <strong id="insightStatus">Aguardando dados</strong>
+          </article>
+
+          <article class="insight-card">
+            <span class="insight-label">Resumo</span>
+            <strong id="insightResumo">Nenhum registro carregado</strong>
+          </article>
+
+          <article class="insight-card">
+            <span class="insight-label">Recomendação</span>
+            <strong id="insightAcao">Sem ação necessária</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel card charts-panel hidden" id="chartsPanel">
+        <div class="section-head">
+          <div>
+            <h2>Gráficos operacionais</h2>
+            <p>Análise visual dos registros do período</p>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <article class="chart-card">
+            <div class="chart-card-head">
+              <h3>Registros por dia</h3>
+              <p>Quantidade de checklists agrupados por data</p>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chartRegistrosPorDia"></canvas>
+            </div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-head">
+              <h3>Status dos registros</h3>
+              <p>Sem alerta, com alerta e risco alto</p>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chartStatusGeral"></canvas>
+            </div>
+          </article>
+        </div>
+      </section>
       <section class="panel card">
         <div class="section-head section-head-stack">
           <div>
@@ -280,6 +357,9 @@
     </div>
   </div>
 
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
