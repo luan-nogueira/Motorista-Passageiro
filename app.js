@@ -89,6 +89,21 @@ const closeModalBtn = document.getElementById("closeModalBtn");
 const modalEditBtn = document.getElementById("modalEditBtn");
 const modalDeleteBtn = document.getElementById("modalDeleteBtn");
 
+const welcomeScreen = document.getElementById("welcomeScreen");
+const appShell = document.getElementById("appShell");
+const enterSystemBtn = document.getElementById("enterSystemBtn");
+
+const btnToggleTheme = document.getElementById("btnToggleTheme");
+const btnToggleCharts = document.getElementById("btnToggleCharts");
+const chartsPanel = document.getElementById("chartsPanel");
+
+const insightStatus = document.getElementById("insightStatus");
+const insightResumo = document.getElementById("insightResumo");
+const insightAcao = document.getElementById("insightAcao");
+
+const toastEl = document.getElementById("toast");
+
+
 // =========================
 // ESTADO
 // =========================
@@ -96,6 +111,8 @@ let editingDocId = null;
 let currentDocsCache = [];
 let openedDocId = null;
 let visibleCount = PAGE_SIZE;
+let chartRegistrosPorDia = null;
+let chartStatusGeral = null;
 
 // =========================
 // DATA E HORA
@@ -115,6 +132,55 @@ recordDate.value = agoraLocalInput();
 function setMensagem(msg, erro = false) {
   saveMsg.textContent = msg;
   saveMsg.className = erro ? "message-box error" : "message-box success";
+  showToast(msg, erro);
+}
+
+function showToast(message, isError = false) {
+  if (!toastEl) return;
+
+  toastEl.textContent = message;
+  toastEl.classList.remove("hidden");
+  toastEl.style.background = isError ? "#991b1b" : "#0f172a";
+
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => {
+    toastEl.classList.add("hidden");
+  }, 2600);
+}
+
+function abrirSistema() {
+  welcomeScreen?.classList.add("hidden");
+  appShell?.classList.remove("hidden");
+  showToast("Sistema carregado com sucesso.");
+}
+
+function aplicarTemaSalvo() {
+  const tema = localStorage.getItem("safe_theme");
+  const dark = tema === "dark";
+  document.body.classList.toggle("dark", dark);
+  if (btnToggleTheme) btnToggleTheme.textContent = dark ? "☀️" : "🌙";
+}
+
+function alternarTema() {
+  const dark = document.body.classList.toggle("dark");
+  localStorage.setItem("safe_theme", dark ? "dark" : "light");
+  if (btnToggleTheme) btnToggleTheme.textContent = dark ? "☀️" : "🌙";
+  showToast(dark ? "Modo escuro ativado." : "Modo claro ativado.");
+}
+
+function alternarGraficos() {
+  if (!chartsPanel || !btnToggleCharts) return;
+
+  const escondido = chartsPanel.classList.contains("hidden");
+  chartsPanel.classList.toggle("hidden");
+  btnToggleCharts.textContent = escondido ? "📊 Ocultar gráficos" : "📊 Gráficos";
+
+  if (escondido) {
+    renderizarGraficos(getRegistrosFiltrados());
+    showToast("Gráficos exibidos.");
+  } else {
+    showToast("Gráficos ocultados.");
+  }
 }
 
 function escapeHtml(valor) {
@@ -601,6 +667,122 @@ function registrarEventosFadiga() {
 }
 
 // =========================
+// INSIGHTS E GRÁFICOS
+// =========================
+function atualizarInsights(registros) {
+  if (!insightStatus || !insightResumo || !insightAcao) return;
+
+  const total = registros.length;
+  const alertas = contarAlertas(registros);
+  const altos = contarRiscoAlto(registros);
+  const media = total
+    ? registros.reduce((acc, item) => acc + Number(item?.fadiga?.pontuacao || 0), 0) / total
+    : 0;
+
+  if (!total) {
+    insightStatus.textContent = "Aguardando registros";
+    insightResumo.textContent = "Nenhum checklist encontrado";
+    insightAcao.textContent = "Cadastre o primeiro registro";
+    return;
+  }
+
+  if (altos > 0) {
+    insightStatus.textContent = "Atenção imediata";
+    insightResumo.textContent = `${altos} registro(s) com risco alto`;
+    insightAcao.textContent = "Priorizar análise dos casos críticos";
+    return;
+  }
+
+  if (alertas > 0) {
+    insightStatus.textContent = "Operação com alertas";
+    insightResumo.textContent = `${alertas} registro(s) exigem atenção`;
+    insightAcao.textContent = "Acompanhar equipe e revisar condições";
+    return;
+  }
+
+  insightStatus.textContent = "Operação estável";
+  insightResumo.textContent = `Média de fadiga em ${media.toFixed(1)}`;
+  insightAcao.textContent = "Sem ação corretiva imediata";
+}
+
+function agruparRegistrosPorDia(registros) {
+  const mapa = new Map();
+
+  registros.forEach((item) => {
+    const data = String(item?.dataRegistro || "").slice(0, 10);
+    if (!data) return;
+    mapa.set(data, (mapa.get(data) || 0) + 1);
+  });
+
+  return Array.from(mapa.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+}
+
+function destruirGraficosSeExistirem() {
+  if (chartRegistrosPorDia) {
+    chartRegistrosPorDia.destroy();
+    chartRegistrosPorDia = null;
+  }
+
+  if (chartStatusGeral) {
+    chartStatusGeral.destroy();
+    chartStatusGeral = null;
+  }
+}
+
+function renderizarGraficos(registros) {
+  if (!chartsPanel || chartsPanel.classList.contains("hidden") || typeof Chart === "undefined") return;
+
+  const canvasLinha = document.getElementById("chartRegistrosPorDia");
+  const canvasStatus = document.getElementById("chartStatusGeral");
+  if (!canvasLinha || !canvasStatus) return;
+
+  destruirGraficosSeExistirem();
+
+  const agrupado = agruparRegistrosPorDia(registros);
+  const labelsDias = agrupado.map(([dia]) => {
+    const [ano, mes, diaNum] = dia.split("-");
+    return `${diaNum}/${mes}`;
+  });
+  const valoresDias = agrupado.map(([, total]) => total);
+
+  const semAlerta = registros.filter((r) => !registroTemAlerta(r)).length;
+  const comAlerta = registros.filter((r) => registroTemAlerta(r) && !riscoAlto(r)).length;
+  const risco = registros.filter((r) => riscoAlto(r)).length;
+
+  chartRegistrosPorDia = new Chart(canvasLinha, {
+    type: "line",
+    data: {
+      labels: labelsDias,
+      datasets: [{
+        label: "Registros",
+        data: valoresDias,
+        tension: 0.35,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+
+  chartStatusGeral = new Chart(canvasStatus, {
+    type: "bar",
+    data: {
+      labels: ["Sem alerta", "Com alerta", "Risco alto"],
+      datasets: [{
+        label: "Quantidade",
+        data: [semAlerta, comAlerta, risco]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+// =========================
 // LISTA / FILTROS
 // =========================
 function getRegistrosFiltrados() {
@@ -704,8 +886,14 @@ function atualizarResumo(registros) {
 }
 
 function reaplicarRenderizacao() {
+  const filtrados = getRegistrosFiltrados();
   renderizarLista();
   atualizarResumo(currentDocsCache);
+  atualizarInsights(filtrados);
+
+  if (chartsPanel && !chartsPanel.classList.contains("hidden")) {
+    renderizarGraficos(filtrados);
+  }
 }
 
 // =========================
@@ -747,7 +935,7 @@ function exportarExcel() {
   const filtrados = getRegistrosFiltrados();
 
   if (!filtrados.length) {
-    alert("Não há registros para exportar com os filtros atuais.");
+    setMensagem("Não há registros para exportar com os filtros atuais.", true);
     return;
   }
 
@@ -927,6 +1115,9 @@ function registrarEventosChecklist() {
 // EVENTOS GERAIS
 // =========================
 closeModalBtn.addEventListener("click", fecharModal);
+enterSystemBtn?.addEventListener("click", abrirSistema);
+btnToggleTheme?.addEventListener("click", alternarTema);
+btnToggleCharts?.addEventListener("click", alternarGraficos);
 
 detailsModal.addEventListener("click", (e) => {
   if (e.target === detailsModal) {
@@ -975,7 +1166,6 @@ modalDeleteBtn.addEventListener("click", async () => {
   } catch (error) {
     console.error("Erro ao excluir checklist:", error);
     setMensagem(`Erro ao excluir checklist: ${error.message}`, true);
-    alert(`Erro ao excluir checklist: ${error.message}`);
   }
 });
 
@@ -1036,7 +1226,6 @@ form.addEventListener("submit", async (e) => {
 
   if (erroValidacao) {
     setMensagem(erroValidacao, true);
-    alert(erroValidacao);
     return;
   }
 
@@ -1067,7 +1256,6 @@ form.addEventListener("submit", async (e) => {
   } catch (error) {
     console.error("Erro ao salvar no Firebase:", error);
     setMensagem(`Erro ao salvar no Firebase: ${error.message}`, true);
-    alert(`Erro ao salvar no Firebase: ${error.message}`);
   } finally {
     submitBtn.disabled = false;
   }
@@ -1135,4 +1323,6 @@ atualizarModoFormulario();
 atualizarExibicaoFadigaExtra();
 atualizarPontuacaoFadiga();
 atualizarVisualFadiga();
-setMensagem("Sistema pronto para uso.");
+aplicarTemaSalvo();
+atualizarInsights([]);
+showToast("Sistema pronto para uso.");
