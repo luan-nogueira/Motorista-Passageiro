@@ -1363,10 +1363,11 @@ form.addEventListener("submit", async (e) => {
       { merge: true }
     );
 
+    const temRisco = registroTemAlerta(dados);
     setMensagem(
       editingDocId
-        ? "Checklist atualizado com sucesso."
-        : "Checklist salvo com sucesso."
+        ? "Checklist atualizado." + (temRisco ? " 🚨 ATENÇÃO: Contate a Gestora de Seg. (31 9779-6710)." : "")
+        : "Checklist salvo com sucesso." + (temRisco ? " 🚨 ATENÇÃO: Contate a Gestora de Seg. (31 9779-6710)." : "")
     );
 
     limparFormulario();
