@@ -74,6 +74,7 @@ const mediaFadigaEl = document.getElementById("mediaFadiga");
 const ultimaAtualizacaoEl = document.getElementById("ultimaAtualizacao");
 
 const filtroNomeEl = document.getElementById("filtroNome");
+const filtroStatusEl = document.getElementById("filtroStatus");
 const filtroDataInicioEl = document.getElementById("filtroDataInicio");
 const filtroDataFimEl = document.getElementById("filtroDataFim");
 const btnLimparFiltros = document.getElementById("btnLimparFiltros");
@@ -884,8 +885,10 @@ function renderizarGraficos(registros) {
 // =========================
 function getRegistrosFiltrados() {
   const nome = filtroNomeEl.value.trim().toLowerCase();
+  const status = filtroStatusEl ? filtroStatusEl.value : "todos";
   const dataInicio = filtroDataInicioEl.value;
   const dataFim = filtroDataFimEl.value;
+  const hoje = new Date();
 
   return currentDocsCache.filter((item) => {
     const nomeOk = !nome || String(item.responsavel || "").toLowerCase().includes(nome);
@@ -896,7 +899,18 @@ function getRegistrosFiltrados() {
     const inicioOk = !dataInicio || (dataValida && item.dataRegistro.slice(0, 10) >= dataInicio);
     const fimOk = !dataFim || (dataValida && item.dataRegistro.slice(0, 10) <= dataFim);
 
-    return nomeOk && inicioOk && fimOk;
+    let statusOk = true;
+    if (status === "atencao_hoje") {
+      statusOk = registroTemAlerta(item) && item?.dataRegistro && mesmaDataLocal(item.dataRegistro, hoje);
+    } else if (status === "hoje") {
+      statusOk = item?.dataRegistro && mesmaDataLocal(item.dataRegistro, hoje);
+    } else if (status === "alerta") {
+      statusOk = registroTemAlerta(item);
+    } else if (status === "risco_alto") {
+      statusOk = riscoAlto(item);
+    }
+
+    return nomeOk && inicioOk && fimOk && statusOk;
   });
 }
 
@@ -1282,6 +1296,11 @@ filtroNomeEl.addEventListener("input", () => {
   reaplicarRenderizacao();
 });
 
+filtroStatusEl?.addEventListener("change", () => {
+  visibleCount = PAGE_SIZE;
+  reaplicarRenderizacao();
+});
+
 filtroDataInicioEl.addEventListener("input", () => {
   visibleCount = PAGE_SIZE;
   reaplicarRenderizacao();
@@ -1294,6 +1313,7 @@ filtroDataFimEl.addEventListener("input", () => {
 
 btnLimparFiltros.addEventListener("click", () => {
   filtroNomeEl.value = "";
+  if (filtroStatusEl) filtroStatusEl.value = "todos";
   filtroDataInicioEl.value = "";
   filtroDataFimEl.value = "";
   visibleCount = PAGE_SIZE;

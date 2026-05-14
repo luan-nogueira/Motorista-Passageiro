@@ -321,10 +321,21 @@
             <p>Clique no card para ver, editar ou excluir</p>
           </div>
 
-          <div class="filters-bar filters-bar-advanced">
+          <div class="filters-bar filters-bar-premium">
             <div class="field">
               <label for="filtroNome">Buscar por nome</label>
               <input type="text" id="filtroNome" placeholder="Digite o nome..." />
+            </div>
+
+            <div class="field">
+              <label for="filtroStatus">Filtrar por Atenção</label>
+              <select id="filtroStatus">
+                <option value="todos">Todos os registros</option>
+                <option value="atencao_hoje">⚠ Atenção Hoje (Alertas/Risco de Hoje)</option>
+                <option value="hoje">📅 Todos de Hoje</option>
+                <option value="alerta">⚠ Com Alerta / Risco Alto (Geral)</option>
+                <option value="risco_alto">🚨 Somente Risco Alto</option>
+              </select>
             </div>
 
             <div class="field">
