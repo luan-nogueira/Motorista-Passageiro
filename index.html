@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SafeDrive Monitor</title>
+
+  <meta name="theme-color" content="#0a192f" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Checklist Diário" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <section id="welcomeScreen" class="welcome-screen">
+    <div class="welcome-overlay"></div>
+    <div class="welcome-card">
+      <div class="welcome-badge">Sistema Comercial</div>
+      <h1>SafeDrive Monitor</h1>
+      <p>Plataforma premium para controle de fadiga, registros operacionais e análise inteligente em tempo real.</p>
+      <div class="welcome-actions">
+        <button id="enterSystemBtn" class="btn btn-primary btn-xl" type="button">Entrar no sistema</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="mobile-app hidden" id="appShell">
+    <header class="topbar premium-topbar">
+      <div class="topbar-badge">Enterprise</div>
+      <div class="brand-wrap">
+        <div class="brand-icon">🛡️</div>
+        <div class="brand-text">
+          <h1>SafeDrive Monitor</h1>
+          <p>Painel inteligente de controle de fadiga</p>
+        </div>
+
+      <div class="topbar-actions">
+        <button id="btnToggleTheme" class="btn btn-light btn-icon" type="button">🌙</button>
+      </div>
+    </header>
+
+    <main class="app-content">
+      <section class="summary-grid summary-grid-6">
+        <article class="summary-card">
+          <span class="summary-label">Registros</span>
+          <strong id="totalRegistros">0</strong>
+        </article>
+
+        <article class="summary-card alert">
+          <span class="summary-label">Com alerta</span>
+          <strong id="totalAlertas">0</strong>
+        </article>
+
+        <article class="summary-card danger-soft">
+          <span class="summary-label">Risco alto</span>
+          <strong id="totalRiscoAlto">0</strong>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-label">Registros hoje</span>
+          <strong id="totalHoje">0</strong>
+        </article>
+
+        <article class="summary-card">
+          <span class="summary-label">Média fadiga</span>
+          <strong id="mediaFadiga">0.0</strong>
+        </article>
+
+        <article class="summary-card wide">
+          <span class="summary-label">Última atualização</span>
+          <strong id="ultimaAtualizacao">--</strong>
+        </article>
+      </section>
+
+      <section class="panel card">
+        <div class="section-head">
+          <div>
+            <h2 id="formTitle">Checklist do dia</h2>
+            <p id="formSubtitle">Preencha o nome, a data e a avaliação.</p>
+          </div>
+        </div>
+
+        <form id="formStatus" class="form-grid">
+          <div class="grid-2">
+            <div class="field">
+              <label for="responsavel">Nome</label>
+              <input type="text" id="responsavel" placeholder="Digite o nome" required />
+            </div>
+
+            <div class="field">
+              <label for="recordDate">Data e Hora</label>
+              <input type="datetime-local" id="recordDate" required />
+            </div>
+          </div>
+
+          <section class="checklist-section">
+            <div class="checklist-header">
+              <h3>1. Condições Físicas e Mentais</h3>
+              <p>Marque a condição atual.</p>
+            </div>
+            <div id="grupo-condicoes" class="checklist-items"></div>
+          </section>
+
+          <section class="checklist-section">
+            <div class="checklist-header">
+              <h3>2. Avaliação de Fadiga</h3>
+              <p>Se houver resposta positiva nas perguntas iniciais, as perguntas complementares serão obrigatórias.</p>
+            </div>
+
+            <div class="checklist-items">
+              <article class="check-item" id="card_fadiga_recente">
+                <div class="check-item-head">
+                  <div class="check-item-title">Você notou que tem se sentido cansado recentemente?</div>
+                  <div class="check-options">
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_recente_resposta" value="sim" />
+                      Sim
+                    </label>
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_recente_resposta" value="nao" />
+                      Não
+                    </label>
+                  </div>
+                </div>
+              </article>
+
+              <article class="check-item" id="card_fadiga_energia">
+                <div class="check-item-head">
+                  <div class="check-item-title">Você tem se sentido com falta de energia?</div>
+                  <div class="check-options">
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_energia_resposta" value="sim" />
+                      Sim
+                    </label>
+                    <label class="option-pill">
+                      <input type="radio" name="fadiga_energia_resposta" value="nao" />
+                      Não
+                    </label>
+                  </div>
+                </div>
+              </article>
+
+              <div id="fadigaExtra" class="fadiga-extra hidden">
+                <article class="check-item" id="card_fadiga_tempo">
+                  <div class="field full">
+                    <label for="fadiga_tempo">Se SIM, informe há quanto tempo isso está ocorrendo</label>
+                    <textarea
+                      id="fadiga_tempo"
+                      placeholder="Ex.: há 2 dias, desde ontem, desde a semana passada..."
+                    ></textarea>
+                  </div>
+                </article>
+
+                <article class="check-item" id="card_fadiga_3h">
+                  <div class="check-item-head">
+                    <div class="check-item-title">Você se sentiu cansado ou com falta de energia por mais do que 3 horas no dia anterior?</div>
+                    <div class="check-options">
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_3h_resposta" value="sim" />
+                        Sim
+                      </label>
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_3h_resposta" value="nao" />
+                        Não
+                      </label>
+                    </div>
+                  </div>
+                  <div class="field full helper-text">
+                    <small>Marque 1 ponto se a resposta for "Sim".</small>
+                  </div>
+                </article>
+
+                <article class="check-item" id="card_fadiga_esforco">
+                  <div class="check-item-head">
+                    <div class="check-item-title">Você se sentiu tão cansado que teve de se esforçar muito para conseguir fazer as coisas no dia anterior?</div>
+                    <div class="check-options">
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_esforco_resposta" value="sim" />
+                        Sim
+                      </label>
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_esforco_resposta" value="nao" />
+                        Não
+                      </label>
+                    </div>
+                  </div>
+                  <div class="field full helper-text">
+                    <small>Marque 1 ponto se a resposta for "Sim".</small>
+                  </div>
+                </article>
+
+                <article class="check-item" id="card_fadiga_prazer">
+                  <div class="check-item-head">
+                    <div class="check-item-title">Você se sentiu cansado ou com falta de energia fazendo coisas que você gosta no dia anterior?</div>
+                    <div class="check-options">
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_prazer_resposta" value="sim" />
+                        Sim
+                      </label>
+                      <label class="option-pill">
+                        <input type="radio" name="fadiga_prazer_resposta" value="nao" />
+                        Não
+                      </label>
+                    </div>
+                  </div>
+                  <div class="field full helper-text">
+                    <small>Marque 1 ponto se a resposta for "Sim".</small>
+                  </div>
+                </article>
+
+                <article class="check-item score-card" id="card_fadiga_pontuacao">
+                  <div class="score-wrap">
+                    <div>
+                      <div class="score-title">Pontuação da fadiga</div>
+                      <div class="score-subtitle">Soma das 3 respostas complementares com “Sim”.</div>
+                    </div>
+                    <div class="score-badge" id="fadigaPontuacao">0</div>
+                  </div>
+                </article>
+              </div>
+            </div>
+          </section>
+
+          <div class="message-box" id="saveMsg">Sistema pronto para uso.</div>
+
+          <div class="actions-bar full">
+            <button class="btn btn-light" id="cancelEditBtn" type="button" hidden>Cancelar edição</button>
+            <button class="btn btn-primary" id="submitBtn" type="submit">Salvar checklist</button>
+          </div>
+        </form>
+      </section>
+
+      </section>
+
+      <section class="panel card premium-actions-bar">
+        <div class="premium-actions-wrap">
+          <div>
+            <h2 class="premium-title">Central de operação</h2>
+            <p class="premium-subtitle">Visualize insights, acompanhe métricas e abra os gráficos somente quando precisar.</p>
+          </div>
+
+          <div class="premium-buttons">
+            <button id="btnToggleCharts" class="btn btn-primary" type="button">📊 Gráficos</button>
+          </div>
+        </div>
+
+        <div class="insights-grid" id="insightsGrid">
+          <article class="insight-card">
+            <span class="insight-label">Status geral</span>
+            <strong id="insightStatus">Aguardando dados</strong>
+          </article>
+
+          <article class="insight-card">
+            <span class="insight-label">Resumo</span>
+            <strong id="insightResumo">Nenhum registro carregado</strong>
+          </article>
+
+          <article class="insight-card">
+            <span class="insight-label">Recomendação</span>
+            <strong id="insightAcao">Sem ação necessária</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel card charts-panel hidden" id="chartsPanel">
+        <div class="section-head">
+          <div>
+            <h2>Gráficos operacionais</h2>
+            <p>Análise visual dos registros do período</p>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <article class="chart-card">
+            <div class="chart-card-head">
+              <h3>Registros por dia</h3>
+              <p>Quantidade de checklists agrupados por data</p>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chartRegistrosPorDia"></canvas>
+            </div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-head">
+              <h3>Status dos registros</h3>
+              <p>Sem alerta, com alerta e risco alto</p>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chartStatusGeral"></canvas>
+            </div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-head">
+              <h3>Distribuição de Fadiga</h3>
+              <p>Proporção por pontuação (0 a 3)</p>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chartDistFadiga"></canvas>
+            </div>
+          </article>
+
+          <article class="chart-card">
+            <div class="chart-card-head">
+              <h3>Fatores de Risco</h3>
+              <p>Itens que mais geraram alertas</p>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="chartFatoresRisco"></canvas>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="panel card">
+        <div class="section-head section-head-stack">
+          <div>
+            <h2>Últimos checklists</h2>
+            <p>Clique no card para ver, editar ou excluir</p>
+          </div>
+
+          <div class="filters-bar filters-bar-advanced">
+            <div class="field">
+              <label for="filtroNome">Buscar por nome</label>
+              <input type="text" id="filtroNome" placeholder="Digite o nome..." />
+            </div>
+
+            <div class="field">
+              <label for="filtroDataInicio">Data inicial</label>
+              <input type="date" id="filtroDataInicio" />
+            </div>
+
+            <div class="field">
+              <label for="filtroDataFim">Data final</label>
+              <input type="date" id="filtroDataFim" />
+            </div>
+
+            <div class="field filter-actions">
+              <label>&nbsp;</label>
+              <button class="btn btn-light" id="btnLimparFiltros" type="button">Limpar filtros</button>
+            </div>
+          </div>
+
+          <div class="toolbar-bar">
+            <button class="btn btn-light" id="btnExportarExcel" type="button">Exportar Excel</button>
+          </div>
+        </div>
+
+        <ul class="records-list" id="lista"></ul>
+
+        <div class="load-more-wrap load-more-wrap-double">
+          <button class="btn btn-light" id="btnVerMais" type="button">Ver mais</button>
+          <button class="btn btn-light" id="btnVerMenos" type="button">Ver menos</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay hidden" id="detailsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h3 id="modalTitle">Detalhes do checklist</h3>
+          <p id="modalSubtitle">Visualização completa do registro</p>
+        </div>
+        <button class="modal-close" id="closeModalBtn" type="button">✕</button>
+      </div>
+
+      <div class="modal-body" id="modalBody"></div>
+
+      <div class="modal-actions">
+        <button class="btn btn-light" id="modalEditBtn" type="button">Editar</button>
+        <button class="btn btn-danger" id="modalDeleteBtn" type="button">Excluir</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
