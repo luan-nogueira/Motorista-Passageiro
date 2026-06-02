@@ -395,6 +395,33 @@
     </div>
   </div>
 
+  <div class="modal-overlay hidden" id="passwordModal">
+    <div class="modal-card" style="max-width: 420px; width: 100%;">
+      <div class="modal-header">
+        <div>
+          <h3>Autenticação do Gestor</h3>
+          <p>Digite a senha de segurança para continuar</p>
+        </div>
+        <button class="modal-close" id="closePasswordModalBtn" type="button">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="field full" style="margin-top: 10px;">
+          <label for="gestorPasswordInput">Senha do Gestor</label>
+          <input type="password" id="gestorPasswordInput" placeholder="Digite a senha..." style="width: 100%; box-sizing: border-box;" />
+        </div>
+        <div id="passwordErrorMsg" class="message-box error hidden" style="margin-top: 14px; padding: 10px; font-size: 13px;">
+          Senha incorreta!
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-light" id="cancelPasswordBtn" type="button">Cancelar</button>
+        <button class="btn btn-primary" id="confirmPasswordBtn" type="button">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast" class="toast hidden"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

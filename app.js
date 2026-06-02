@@ -1268,6 +1268,58 @@ function fecharModal() {
   document.body.style.overflow = "";
 }
 
+let resolvePasswordPromise = null;
+
+function solicitarSenhaGestor() {
+  const passwordModal = document.getElementById("passwordModal");
+  const gestorPasswordInput = document.getElementById("gestorPasswordInput");
+  const passwordErrorMsg = document.getElementById("passwordErrorMsg");
+
+  if (!passwordModal || !gestorPasswordInput) {
+    const senha = prompt("Digite a senha do gestor:");
+    return Promise.resolve(senha === SENHA_GESTOR);
+  }
+
+  gestorPasswordInput.value = "";
+  passwordErrorMsg.classList.add("hidden");
+  passwordModal.classList.remove("hidden");
+  gestorPasswordInput.focus();
+  document.body.style.overflow = "hidden";
+
+  return new Promise((resolve) => {
+    resolvePasswordPromise = resolve;
+  });
+}
+
+function fecharPasswordModal() {
+  const passwordModal = document.getElementById("passwordModal");
+  if (passwordModal) {
+    passwordModal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+  resolvePasswordPromise = null;
+}
+
+function tratarConfirmarSenha() {
+  const gestorPasswordInput = document.getElementById("gestorPasswordInput");
+  const passwordErrorMsg = document.getElementById("passwordErrorMsg");
+  const senha = gestorPasswordInput?.value || "";
+
+  if (senha === SENHA_GESTOR) {
+    fecharPasswordModal();
+    if (resolvePasswordPromise) resolvePasswordPromise(true);
+  } else {
+    passwordErrorMsg.classList.remove("hidden");
+    gestorPasswordInput.value = "";
+    gestorPasswordInput.focus();
+  }
+}
+
+function tratarCancelarSenha() {
+  fecharPasswordModal();
+  if (resolvePasswordPromise) resolvePasswordPromise(false);
+}
+
 // =========================
 // EVENTOS CHECKLIST
 // =========================
@@ -1298,24 +1350,40 @@ detailsModal.addEventListener("click", (e) => {
   }
 });
 
+const passwordModalEl = document.getElementById("passwordModal");
+if (passwordModalEl) {
+  passwordModalEl.addEventListener("click", (e) => {
+    if (e.target === passwordModalEl) {
+      tratarCancelarSenha();
+    }
+  });
+}
+
+document.getElementById("closePasswordModalBtn")?.addEventListener("click", tratarCancelarSenha);
+document.getElementById("cancelPasswordBtn")?.addEventListener("click", tratarCancelarSenha);
+document.getElementById("confirmPasswordBtn")?.addEventListener("click", tratarConfirmarSenha);
+document.getElementById("gestorPasswordInput")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    tratarConfirmarSenha();
+  } else if (e.key === "Escape") {
+    tratarCancelarSenha();
+  }
+});
+
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !detailsModal.classList.contains("hidden")) {
     fecharModal();
   }
 });
 
-modalEditBtn.addEventListener("click", () => {
+modalEditBtn.addEventListener("click", async () => {
   if (!openedDocId) return;
 
   const dados = currentDocsCache.find((item) => item.__docId === openedDocId);
   if (!dados) return;
 
-  const senhaDigitada = prompt("Digite a senha do gestor para editar:");
-  if (senhaDigitada === null) return;
-  if (senhaDigitada !== SENHA_GESTOR) {
-    alert("Senha incorreta! Operação cancelada.");
-    return;
-  }
+  const autorizado = await solicitarSenhaGestor();
+  if (!autorizado) return;
 
   preencherFormulario(dados);
   editingDocId = openedDocId;
@@ -1331,12 +1399,8 @@ modalDeleteBtn.addEventListener("click", async () => {
   const dados = currentDocsCache.find((item) => item.__docId === openedDocId);
   const nome = dados?.responsavel || "este registro";
 
-  const senhaDigitada = prompt("Digite a senha do gestor para excluir:");
-  if (senhaDigitada === null) return;
-  if (senhaDigitada !== SENHA_GESTOR) {
-    alert("Senha incorreta! Operação cancelada.");
-    return;
-  }
+  const autorizado = await solicitarSenhaGestor();
+  if (!autorizado) return;
 
   const confirmar = confirm(`Deseja realmente excluir o checklist de ${nome} em ${formatarDataHoraBR(dados?.dataRegistro)}?`);
   if (!confirmar) return;
