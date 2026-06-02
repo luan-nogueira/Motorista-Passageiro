@@ -31,7 +31,7 @@ const db = getFirestore(app);
 // CONFIG
 // =========================
 const PAGE_SIZE = 5;
-const SENHA_GESTOR = "anglo2026";
+const SENHA_GESTOR = "digital2026";
 
 const CHECKLIST_SECTIONS = [
   {
