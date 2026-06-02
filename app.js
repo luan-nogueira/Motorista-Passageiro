@@ -31,6 +31,7 @@ const db = getFirestore(app);
 // CONFIG
 // =========================
 const PAGE_SIZE = 5;
+const SENHA_GESTOR = "anglo2026";
 
 const CHECKLIST_SECTIONS = [
   {
@@ -1309,6 +1310,13 @@ modalEditBtn.addEventListener("click", () => {
   const dados = currentDocsCache.find((item) => item.__docId === openedDocId);
   if (!dados) return;
 
+  const senhaDigitada = prompt("Digite a senha do gestor para editar:");
+  if (senhaDigitada === null) return;
+  if (senhaDigitada !== SENHA_GESTOR) {
+    alert("Senha incorreta! Operação cancelada.");
+    return;
+  }
+
   preencherFormulario(dados);
   editingDocId = openedDocId;
   atualizarModoFormulario();
@@ -1322,6 +1330,13 @@ modalDeleteBtn.addEventListener("click", async () => {
 
   const dados = currentDocsCache.find((item) => item.__docId === openedDocId);
   const nome = dados?.responsavel || "este registro";
+
+  const senhaDigitada = prompt("Digite a senha do gestor para excluir:");
+  if (senhaDigitada === null) return;
+  if (senhaDigitada !== SENHA_GESTOR) {
+    alert("Senha incorreta! Operação cancelada.");
+    return;
+  }
 
   const confirmar = confirm(`Deseja realmente excluir o checklist de ${nome} em ${formatarDataHoraBR(dados?.dataRegistro)}?`);
   if (!confirmar) return;
