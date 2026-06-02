@@ -37,7 +37,17 @@ const CHECKLIST_SECTIONS = [
     id: "condicoes",
     titulo: "Condições Físicas e Mentais",
     itens: [
-      { chave: "descansado", label: "Estou descansado (mínimo 6–8h de sono)", alertOn: "nao" },
+      {
+        chave: "descansado",
+        label: "Quantas horas você dormiu na última noite?",
+        alertOn: null,
+        opcoes: [
+          { valor: "Menos de 4 horas", label: "Menos de 4 horas" },
+          { valor: "4 a 6 horas", label: "4 a 6 horas" },
+          { valor: "6 a 8 horas", label: "6 a 8 horas" },
+          { valor: "Mais de 8 horas", label: "Mais de 8 horas" }
+        ]
+      },
       { chave: "alcool", label: "Estou sob efeito de álcool", alertOn: "sim" },
       { chave: "drogas", label: "Estou sob efeito de drogas ilícitas", alertOn: "sim" },
       { chave: "medicamentos", label: "Estou sob efeito de medicamentos que afetem reflexos", alertOn: "sim" },
@@ -306,14 +316,20 @@ function contarRiscoAlto(registros) {
 }
 
 function badgeClass(chave, resposta) {
+  if (chave === "descansado") {
+    if (resposta === "Menos de 4 horas" || resposta === "4 a 6 horas") return "badge-warning";
+    return "badge-sim";
+  }
   const itemFake = { resposta };
   return itemTemAlertaPorChave(chave, itemFake) ? "badge-nao" : "badge-sim";
 }
 
 function badgeLabel(resposta) {
-  if (String(resposta).toLowerCase() === "sim") return "Sim";
-  if (String(resposta).toLowerCase() === "nao") return "Não";
-  return "--";
+  if (!resposta) return "--";
+  const respLower = String(resposta).toLowerCase();
+  if (respLower === "sim") return "Sim";
+  if (respLower === "nao") return "Não";
+  return resposta;
 }
 
 function obterRespostaPorName(name) {
@@ -359,28 +375,44 @@ function atualizarPontuacaoFadiga() {
 // FORMULÁRIO
 // =========================
 function criarItemChecklist(item) {
+  const optionsHtml = item.opcoes 
+    ? item.opcoes.map(opt => `
+        <label class="option-pill">
+          <input type="radio" name="${item.chave}_resposta" value="${escapeHtml(opt.valor)}" />
+          ${escapeHtml(opt.label)}
+        </label>
+      `).join("")
+    : `
+        <label class="option-pill">
+          <input type="radio" name="${item.chave}_resposta" value="sim" />
+          Sim
+        </label>
+
+        <label class="option-pill">
+          <input type="radio" name="${item.chave}_resposta" value="nao" />
+          Não
+        </label>
+      `;
+
+  const obsLabel = item.chave === "descansado" ? "Justificativa" : "Observações";
+  const placeholder = item.chave === "descansado" 
+    ? "Descreva o motivo de ter dormido menos de 4 horas." 
+    : "Descreva algo somente se necessário.";
+
   return `
     <article class="check-item" id="card_${item.chave}">
       <div class="check-item-head">
         <div class="check-item-title">${escapeHtml(item.label)}</div>
         <div class="check-options">
-          <label class="option-pill">
-            <input type="radio" name="${item.chave}_resposta" value="sim" />
-            Sim
-          </label>
-
-          <label class="option-pill">
-            <input type="radio" name="${item.chave}_resposta" value="nao" />
-            Não
-          </label>
+          ${optionsHtml}
         </div>
       </div>
 
-      <div class="field full">
-        <label for="${item.chave}_obs">Observações</label>
+      <div class="field full ${item.chave === "descansado" ? "hidden" : ""}" id="container_obs_${item.chave}">
+        <label for="${item.chave}_obs">${obsLabel}</label>
         <textarea
           id="${item.chave}_obs"
-          placeholder="Descreva algo somente se necessário."
+          placeholder="${placeholder}"
         ></textarea>
       </div>
     </article>
@@ -448,6 +480,10 @@ function validarDados(dados) {
 
   if (semResposta) return "Responda TODOS os itens obrigatórios do checklist.";
 
+  if (dados.itens?.descansado?.resposta === "Menos de 4 horas" && !dados.itens?.descansado?.observacoes?.trim()) {
+    return "Por favor, preencha a justificativa por ter dormido menos de 4 horas.";
+  }
+
   if (!dados.fadiga?.recente || !dados.fadiga?.energia) {
     return "Responda as duas perguntas iniciais da Avaliação de Fadiga.";
   }
@@ -478,7 +514,7 @@ function preencherFormulario(dados) {
 
       const radios = document.querySelectorAll(`input[name="${item.chave}_resposta"]`);
       radios.forEach((r) => {
-        r.checked = r.value === valor;
+        r.checked = String(r.value).toLowerCase() === valor;
       });
 
       const obs = document.getElementById(`${item.chave}_obs`);
@@ -538,6 +574,27 @@ function atualizarVisualAlertaItem(chave) {
   const resposta = obterRespostaItem(chave);
 
   if (!card) return;
+
+  if (chave === "descansado") {
+    const containerObs = document.getElementById("container_obs_descansado");
+    const obsTextarea = document.getElementById("descansado_obs");
+    if (containerObs) {
+      if (resposta === "Menos de 4 horas") {
+        containerObs.classList.remove("hidden");
+        if (obsTextarea) {
+          obsTextarea.required = true;
+        }
+      } else {
+        containerObs.classList.add("hidden");
+        if (obsTextarea) {
+          obsTextarea.required = false;
+        }
+      }
+    }
+    card.classList.remove("alert");
+    card.classList.remove("danger");
+    return;
+  }
 
   if (!resposta) {
     card.classList.remove("alert");
@@ -841,7 +898,10 @@ function renderizarGraficos(registros) {
     };
 
     registros.forEach((r) => {
-      if (itemTemAlertaPorChave("descansado", r?.itens?.descansado)) contagemFatores["Sono insuficiente"]++;
+      const respSono = r?.itens?.descansado?.resposta;
+      if (respSono === "Menos de 4 horas" || respSono === "4 a 6 horas") {
+        contagemFatores["Sono insuficiente"]++;
+      }
       if (itemTemAlertaPorChave("alcool", r?.itens?.alcool)) contagemFatores["Álcool"]++;
       if (itemTemAlertaPorChave("drogas", r?.itens?.drogas)) contagemFatores["Drogas ilícitas"]++;
       if (itemTemAlertaPorChave("medicamentos", r?.itens?.medicamentos)) contagemFatores["Medicamentos"]++;
@@ -1066,12 +1126,13 @@ function exportarExcel() {
 function montarItemDetalhe(itemConfig, itemData) {
   const resposta = itemData?.resposta || "";
   const obs = itemData?.observacoes || "";
+  const obsLabel = itemConfig.chave === "descansado" ? "Justificativa" : "Observações";
 
   return `
     <div class="detail-item">
       <div class="detail-item-main">
         <div class="detail-item-title">${escapeHtml(itemConfig.label)}</div>
-        ${obs ? `<div class="detail-item-obs"><strong>Observações:</strong> ${escapeHtml(obs)}</div>` : ""}
+        ${obs ? `<div class="detail-item-obs"><strong>${obsLabel}:</strong> ${escapeHtml(obs)}</div>` : ""}
       </div>
       <span class="status-badge ${badgeClass(itemConfig.chave, resposta)}">${badgeLabel(resposta)}</span>
     </div>
